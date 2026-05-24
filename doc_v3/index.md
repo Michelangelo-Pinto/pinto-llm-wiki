@@ -74,9 +74,14 @@ flowchart TD
 
 ### For LLM agents
 
-1. [System Overview](architecture/system-overview.md) — The 8 containers, how they connect
-2. [Multi-MCP Architecture](architecture/multi-mcp-architecture.md) — Why 4 servers, how they communicate
-3. [MCP Server Registry](architecture/mcp-server-registry.md) — Which server does what
-4. [LLM Wiki Workflows](guides/llm-wiki-workflows.md) — Core operating patterns (Ingest, Query, Lint)
-5. [Tool Catalog](reference/tool-catalog.md) — All ~65 tools with full signatures
-6. [Features](features/index.md) — Feature catalog by priority level
+1. [Quick Reference](reference/quick-reference.md) — Start here: all tools, collections, workflows, and ports on one page
+2. [System Overview](architecture/system-overview.md) — The 8 containers, how they connect
+3. [Multi-MCP Architecture](architecture/multi-mcp-architecture.md) — Why 4 servers, how they communicate
+4. [MCP Server Registry](architecture/mcp-server-registry.md) — Which server does what
+5. [Qdrant Vector DB](architecture/qdrant-vector-db.md) — Collection schemas, embedding model, backup
+6. [Ingestion Pipeline Design](architecture/ingestion-pipeline-design.md) — How documents are processed end-to-end
+7. [Database](architecture/database.md) — What's stored in SQLite vs Qdrant
+8. [LLM Wiki Workflows](guides/llm-wiki-workflows.md) — Core operating patterns (Ingest, Query, Lint)
+9. [Tool Catalog](reference/tool-catalog.md) — All ~65 tools with full signatures
+10. [Error Catalog](reference/error-catalog.md) — Common errors and solutions
+11. [Features](features/index.md) — Feature catalog by priority level

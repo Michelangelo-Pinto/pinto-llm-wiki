@@ -132,3 +132,108 @@ flowchart TD
 4. **Append to log**: The log is append-only. Use `wikijs_append_to_page`, not read-modify-write
 5. **Cross-references are the backbone**: When updating a page, use `wikijs_get_affected_pages` to find all related pages
 6. **Ingest documents before referencing**: Use `ingest_document` before `wikijs_smart_query` if the content is from external files
+
+## Cross-Server Workflows (v3 Multi-MCP)
+
+These workflows chain tools across multiple MCP servers. Each uses the agent's ability to call tools on different servers in sequence.
+
+### Workflow 1: Document Processing + Wiki Creation
+
+Ingest an external document, search its content semantically, and create a wiki page from the results.
+
+```mermaid
+flowchart TD
+    Ingest["1. ingest_document\n(Ingestion Pipeline :8002)"]
+    Status["2. ingest_get_status\nVerify chunks created"]
+    Search["3. ingest_search_chunks\nFind relevant content\n(Ingestion Pipeline :8002)"]
+    Create["4. wikijs_create_page\nCreate wiki page from chunks\n(Wiki.js MCP :8000)"]
+    Link["5. wikijs_get_affected_pages\nDiscover related wiki pages\n(Wiki.js MCP :8000)"]
+
+    Ingest --> Status --> Search --> Create --> Link
+```
+
+**Tool sequence:**
+
+1. `ingest_document(file_path="architecture.pdf")` [Ingestion :8002] — full pipeline: detect → extract → chunk → embed → upsert
+2. `ingest_get_status(document_id)` [Ingestion :8002] — confirm chunks created
+3. `ingest_search_chunks(query="microservices", limit=5)` [Ingestion :8002] — find most relevant chunks
+4. `wikijs_create_page(title="Architecture (from architecture.pdf)", content=chunks_merged)` [Wiki.js :8000] — create wiki page
+5. `wikijs_get_affected_pages(page_id)` [Wiki.js :8000] — discover pages that should link to this new page
+
+### Workflow 2: OCR + Wiki Creation
+
+Extract text from an image or scanned PDF using Tesseract MCP, then create a wiki page.
+
+```mermaid
+flowchart TD
+    OCR["1. ocr_extract_text\n(Tesseract MCP :8003)"]
+    Confidence["2. ocr_get_confidence\nCheck OCR quality\n(Tesseract MCP :8003)"]
+    Decision{"Confidence\ngood?"}
+    Create["3. wikijs_create_page\n(Wiki.js MCP :8000)"]
+    Preprocess["3. ocr_preprocess_and_extract\nRe-try with preprocessing\n(Tesseract MCP :8003)"]
+
+    OCR --> Confidence --> Decision
+    Decision -->|yes| Create
+    Decision -->|no| Preprocess --> Create
+```
+
+**Tool sequence:**
+
+1. `ocr_extract_text(input_path="/data/shared/scan.png", language="eng+ita")` [Tesseract :8003] — OCR the image
+2. `ocr_get_confidence(input_path="/data/shared/scan.png")` [Tesseract :8003] — check quality
+3. If confidence < 70: `ocr_preprocess_and_extract(input_path, deskew=True, denoise=True)` [Tesseract :8003]
+4. `wikijs_create_page(title="Scanned Document Content", content=extracted_text, space_id=1)` [Wiki.js :8000]
+
+### Workflow 3: Batch Document Import + Bulk Wiki Creation
+
+Ingest an entire directory of documents, then create wiki pages for each.
+
+```mermaid
+flowchart TD
+    IngestDir["1. ingest_directory\n(Ingestion Pipeline :8002)"]
+    ListDocs["2. ingest_list_documents\nGet all ingested docs\n(Ingestion Pipeline :8002)"]
+    SearchAll["3. For each document:\nwikijs_search_pages\nCheck if page exists\n(Wiki.js MCP :8000)"]
+    CreatePages["4. For each new document:\nwikijs_create_page\n(Wiki.js MCP :8000)"]
+    Rebuild["5. wikijs_rebuild_backlink_index\n(Wiki.js MCP :8000)"]
+
+    IngestDir --> ListDocs --> SearchAll --> CreatePages --> Rebuild
+```
+
+**Tool sequence:**
+
+1. `ingest_directory(dir_path="/data/shared/docs/", recursive=True)` [Ingestion :8002] — process all files
+2. `ingest_list_documents()` [Ingestion :8002] — get list of ingested documents
+3. For each document: `wikijs_search_pages(filename_stem)` [Wiki.js :8000] — check if wiki page already exists
+4. For new documents: `wikijs_create_page(title="From: doc_name", content=extracted_summary)` [Wiki.js :8000]
+5. `wikijs_rebuild_backlink_index()` [Wiki.js :8000] — after bulk creation, rebuild the backlink graph
+
+### Workflow 4: Semantic Search + Content Update
+
+Search Qdrant directly for semantically similar content, then update wiki pages with findings.
+
+```mermaid
+flowchart TD
+    QdrantSearch["1. qdrant_search\nSearch documents collection\n(Qdrant MCP :8001)"]
+    WikiSearch["2. wikijs_smart_query\nFind related wiki pages\n(Wiki.js MCP :8000)"]
+    BulkRead["3. wikijs_bulk_get_pages\nRead candidate pages\n(Wiki.js MCP :8000)"]
+    Update["4. wikijs_update_page\nMerge new content\n(Wiki.js MCP :8000)"]
+    Affected["5. wikijs_get_affected_pages\nDiscover impact\n(Wiki.js MCP :8000)"]
+
+    QdrantSearch --> WikiSearch --> BulkRead --> Update --> Affected
+```
+
+**Tool sequence:**
+
+1. `qdrant_search(collection="documents", query_text="topic", limit=10)` [Qdrant :8001] — search ingested documents
+2. `wikijs_smart_query("topic")` [Wiki.js :8000] — find related wiki pages via hybrid search
+3. `wikijs_bulk_get_pages(relevant_ids)` [Wiki.js :8000] — read current content
+4. `wikijs_update_page(page_id, content=merged_content)` [Wiki.js :8000] — write updated content
+5. `wikijs_get_affected_pages(page_id)` [Wiki.js :8000] — find pages that need attention after the update
+
+## Cross-Server Scale Rules
+
+1. **Ingest before search**: Ingested documents must exist in Qdrant before `wikijs_smart_query` can use them
+2. **OCR quality check**: Always check OCR confidence before creating wiki pages from OCR output
+3. **Bulk imports need backlink rebuild**: After creating many pages, run `wikijs_rebuild_backlink_index()`
+4. **Idempotent ingestion**: Re-running `ingest_directory` skips already-ingested files — safe to retry
+5. **Cross-server errors are independent**: A Qdrant MCP failure doesn't affect Wiki.js MCP tools and vice versa

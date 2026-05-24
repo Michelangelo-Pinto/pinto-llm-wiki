@@ -1,0 +1,104 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Unit tests: no containers required — pure Python with mocked dependencies.
+  # Runs first for fast feedback on logic errors.
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest>=7.4.0 pytest-mock>=3.12.0
+          pip install numpy>=1.24.0 opencv-python-headless>=4.8.0
+          pip install markdown>=3.5.0 beautifulsoup4>=4.12.0
+          pip install qdrant-client>=1.17.0 sentence-transformers>=3.0.0
+          pip install pydantic>=2.0.0 pydantic-settings>=2.0.0
+
+      - name: Run unit tests
+        run: |
+          PYTHONPATH="mcp-servers/qdrant-mcp/src:mcp-servers/ingestion-pipeline/src:mcp-servers/wiki-js-mcp/src:mcp-servers/tesseract-mcp/src" \
+          pytest tests/unit/ -v -m unit --tb=short
+
+  # Fast tests: Qdrant integration + E2E + performance benchmarks
+  # These only need qdrant-db (no full Wiki.js stack).
+  qdrant-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up environment
+        run: cp .env.example .env
+
+      - name: Build test runner
+        run: docker compose --profile test build test-runner
+
+      - name: Run Qdrant integration tests
+        run: docker compose --profile test run --rm test-runner pytest tests/integration/qdrant/ -v -m integration --tb=short
+
+      - name: Run E2E tests
+        run: docker compose --profile test run --rm test-runner pytest tests/e2e/ -v -m e2e --tb=short
+
+      - name: Run performance benchmarks
+        run: docker compose --profile test run --rm test-runner pytest tests/performance/ -v -m performance --benchmark-only --tb=short
+
+  # Full-stack tests: entire 8-container stack required.
+  # Slower — runs on main branch pushes and manual dispatch only.
+  stack-tests:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up environment
+        run: |
+          cp .env.example .env
+          echo "POSTGRES_PASSWORD=ci_test_password" >> .env
+          echo "WIKIJS_PASSWORD=admin123" >> .env
+
+      - name: Start full stack
+        run: docker compose up -d --build
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for Wiki.js to be ready..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "Wiki.js ready after ${i}s"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Build test runner
+        run: docker compose --profile integration build test-runner
+
+      - name: Run stack integration tests
+        run: docker compose --profile integration run --rm test-runner pytest tests/integration/stack/ -v -m integration_stack --tb=short
+
+      - name: Run wiki regression tests
+        run: docker compose --profile integration run --rm test-runner pytest tests/regression/ -v -m regression --tb=short
+
+      - name: Run SSE smoke tests
+        run: docker compose --profile integration run --rm test-runner pytest tests/smoke/ -v -m smoke --tb=short
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          docker compose logs --tail 100 wiki-js-mcp
+          docker compose logs --tail 100 qdrant-mcp
+          docker compose logs --tail 50 wiki

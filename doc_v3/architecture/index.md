@@ -7,9 +7,11 @@ v3 distributed architecture with Qdrant vector DB, Tesseract OCR, and multi-MCP 
 | Document | Description | Read when |
 |----------|-------------|-----------|
 | [System Overview](system-overview.md) | 8 containers, data flow, startup order, volumes, networks | Understanding the full stack |
+| [Data Flow](data-flow.md) | Sequence diagrams for all major operations: semantic query, page CRUD, health, affected pages, ingestion, import/export | Understanding request lifecycles |
 | [Multi-MCP Architecture](multi-mcp-architecture.md) | Service mesh design, communication patterns, rationale | Understanding why 4 servers instead of 1 |
 | [MCP Server Registry](mcp-server-registry.md) | Per-server catalog: containers, ports, dependencies | Looking up a specific server's config |
 | [Qdrant Vector DB](qdrant-vector-db.md) | Collection schema, HNSW config, backup, embedding model | Understanding vector search internals |
+| [Ingestion Pipeline Design](ingestion-pipeline-design.md) | 6-stage pipeline, OCR routing, chunking algorithm, idempotency, state machine | Understanding document processing |
 | [Modules](modules.md) | Python module map across all 4 repositories, per-module descriptions | Finding where code lives |
 | [Database](database.md) | SQLite models, Qdrant collections, session patterns, v2 vs v3 changes | Understanding data storage |
 
@@ -32,7 +34,8 @@ For an LLM agent to understand the v3 system:
 2. **[Multi-MCP Architecture](multi-mcp-architecture.md)** — Why 4 independent servers, how they communicate.
 3. **[MCP Server Registry](mcp-server-registry.md)** — Which server does what, which ports, what dependencies.
 4. **[Qdrant Vector DB](qdrant-vector-db.md)** — How semantic search works in v3.
-5. **[Database](database.md)** — What's stored in SQLite vs Qdrant.
+5. **[Ingestion Pipeline Design](ingestion-pipeline-design.md)** — How documents are processed end-to-end.
+6. **[Database](database.md)** — What's stored in SQLite vs Qdrant.
 
 **[Modules](modules.md)** is for developers who need to find specific source files.
 

@@ -12,14 +12,12 @@ v3 uses a hybrid storage architecture: **Qdrant** for vector embeddings and **SQ
 
 ## Qdrant Collections
 
-See [Qdrant Vector DB](qdrant-vector-db.md) for full schema details.
+See [Qdrant Vector DB](qdrant-vector-db.md) for full schema details (vector size, distance, payload fields, HNSW config, backup).
 
 ### `wiki_pages`
-
 Used by Wiki.js MCP for `wikijs_smart_query` semantic search. Payload: `page_id`, `title`, `path`, `locale`.
 
 ### `documents`
-
 Used by Ingestion Pipeline for document chunks. Payload: `document_id`, `chunk_index`, `file_type`, `source_path`, `text`.
 
 ## SQLite — Wiki.js MCP

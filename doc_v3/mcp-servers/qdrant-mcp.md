@@ -31,25 +31,7 @@ qdrant-mcp:
 
 ## Collection Schema
 
-### `wiki_pages` collection
-
-| Parameter | Value |
-|-----------|-------|
-| Vector size | 384 (all-MiniLM-L6-v2) |
-| Distance | Cosine |
-| Payload on disk | True |
-
-Payload per point: `page_id`, `path`, `title`, `tags`, `locale`, `content_hash`.
-
-### `documents` collection
-
-| Parameter | Value |
-|-----------|-------|
-| Vector size | 384 (all-MiniLM-L6-v2) |
-| Distance | Cosine |
-| Payload on disk | True |
-
-Payload per point: `document_id`, `chunk_index`, `source_file`, `file_type`, `page_number`, `section_title`, `text`, `content_hash`.
+See [Qdrant Vector DB Architecture](../architecture/qdrant-vector-db.md) for full schema details (vector size, distance, HNSW, backup).
 
 ### Payload Indexes
 

@@ -53,23 +53,12 @@ v3 replaces the monolithic v2 MCP server with 4 independent MCP servers, each ow
 
 ## Collections
 
-### `wiki_pages`
+Qdrant stores two collections. For full schema details (payload fields, HNSW config, backup), see [Qdrant Vector DB](qdrant-vector-db.md).
 
-Used by Wiki.js MCP for semantic search via `wikijs_smart_query`.
-
-**Schema:**
-- Vector size: 384 (all-MiniLM-L6-v2)
-- Distance: Cosine
-- Payload: `page_id`, `title`, `path`, `locale`
-
-### `documents`
-
-Used by Ingestion Pipeline for ingested document chunks.
-
-**Schema:**
-- Vector size: 384 (all-MiniLM-L6-v2)
-- Distance: Cosine
-- Payload: `document_id`, `chunk_index`, `file_type`, `source_path`
+| Collection | Used by | Purpose |
+|------------|---------|---------|
+| `wiki_pages` | Wiki.js MCP | Semantic search via `wikijs_smart_query` |
+| `documents` | Ingestion Pipeline | Ingested document chunks |
 
 ## Key Design Decisions
 
