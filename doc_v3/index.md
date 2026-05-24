@@ -70,7 +70,10 @@ flowchart TD
 
 1. [Quickstart](guides/quickstart.md) — Get the 8-container stack running
 2. [Multi-MCP Setup](guides/multi-mcp-setup.md) — Configure Cursor for 4 MCP servers
-3. [Docker Operations](guides/docker-operations.md) — Build, test, debug commands
+3. [Agent Orientation](guides/agent-orientation.md) — How to instruct the LLM agent
+4. [File Paths and Volumes](guides/file-paths-and-volumes.md) — Where files go, how to copy them
+5. [Docker Operations](guides/docker-operations.md) — Build, test, debug commands
+6. [Troubleshooting](guides/troubleshooting.md) — Fix common problems
 
 ### For LLM agents
 
@@ -78,10 +81,12 @@ flowchart TD
 2. [System Overview](architecture/system-overview.md) — The 8 containers, how they connect
 3. [Multi-MCP Architecture](architecture/multi-mcp-architecture.md) — Why 4 servers, how they communicate
 4. [MCP Server Registry](architecture/mcp-server-registry.md) — Which server does what
-5. [Qdrant Vector DB](architecture/qdrant-vector-db.md) — Collection schemas, embedding model, backup
-6. [Ingestion Pipeline Design](architecture/ingestion-pipeline-design.md) — How documents are processed end-to-end
-7. [Database](architecture/database.md) — What's stored in SQLite vs Qdrant
-8. [LLM Wiki Workflows](guides/llm-wiki-workflows.md) — Core operating patterns (Ingest, Query, Lint)
-9. [Tool Catalog](reference/tool-catalog.md) — All ~65 tools with full signatures
-10. [Error Catalog](reference/error-catalog.md) — Common errors and solutions
-11. [Features](features/index.md) — Feature catalog by priority level
+5. [Data Flow](architecture/data-flow.md) — Request lifecycle diagrams for every major operation
+6. [Qdrant Vector DB](architecture/qdrant-vector-db.md) — Collection schemas, embedding model, backup
+7. [Ingestion Pipeline Design](architecture/ingestion-pipeline-design.md) — How documents are processed end-to-end
+8. [Database](architecture/database.md) — What's stored in SQLite vs Qdrant
+9. [File Paths and Volumes](guides/file-paths-and-volumes.md) — Container paths for ingestion and exports
+10. [LLM Wiki Workflows](guides/llm-wiki-workflows.md) — Core operating patterns (Ingest, Query, Lint)
+11. [Tool Catalog](reference/tool-catalog.md) — All ~65 tools with full signatures
+12. [Error Catalog](reference/error-catalog.md) — Common errors and solutions
+13. [Features](features/index.md) — Feature catalog by priority level

@@ -60,29 +60,62 @@ A file at `tech/frontend/react.md` is imported to wiki path `tech/frontend/react
 
 ## Human Workflow
 
-```python
-# 1. Export the wiki
-wikijs_export_wiki("./my-export")
+> **Important:** The export/import tools operate on the container filesystem. The `output_dir` and `file_path` parameters are paths **inside the Docker container**, not on your host machine. Use `docker compose cp` to move files between host and container.
 
-# 2. Edit files in Obsidian, VS Code, or any editor
+**Export → Edit → Import cycle:**
 
-# 3. Import changes
-wikijs_import_directory("./my-export")
+```bash
+# 1. Export the wiki (agent runs this in Cursor):
+# wikijs_export_wiki("/data/shared/my-export")
+
+# 2. Extract exported files to your host
+docker compose cp wiki-js-mcp:/data/shared/my-export ./my-export
+
+# 3. Edit files locally in Obsidian, VS Code, or any editor
+
+# 4. Load edited files back into the container
+docker compose cp ./my-export wiki-js-mcp:/data/shared/my-export
+
+# 5. Import changes (agent runs this in Cursor):
+# wikijs_import_directory("/data/shared/my-export", update_existing=True)
 ```
 
 ## Agent Workflow
 
-```python
-# 1. Export before batch changes (safety checkpoint)
-wikijs_export_wiki("./backup-2026-05-23")
+> **Important:** The agent can call the export/import tools directly, but it cannot copy files between host and container. You (the human) must handle the `docker compose cp` steps.
 
-# 2. Perform batch edits on the exported files
+**Safety checkpoint before batch changes:**
 
-# 3. Re-import
-wikijs_import_directory("./backup-2026-05-23", update_existing=True)
+```bash
+# 1. Agent exports (in Cursor):
+# wikijs_export_wiki("/data/shared/backup-2026-05-23")
+
+# 2. Human extracts to host for safekeeping:
+docker compose cp wiki-js-mcp:/data/shared/backup-2026-05-23 ./backup-2026-05-23
+
+# 3. Agent performs batch edits on wiki pages (in Cursor)
+# wikijs_update_page(...)  -- batch changes
+
+# 4. If something goes wrong, human can restore from backup:
+docker compose cp ./backup-2026-05-23 wiki-js-mcp:/data/shared/restore
+# Agent re-imports:
+# wikijs_import_directory("/data/shared/restore", update_existing=True)
 ```
 
 Always use `update_existing=True` for re-imports to update existing pages rather than creating duplicates.
+
+## Alternative: Use Shared Volume Directly
+
+Instead of `docker compose cp`, you can bind-mount a host directory. Create `docker-compose.override.yml`:
+
+```yaml
+services:
+  wiki-js-mcp:
+    volumes:
+      - ./wiki-exports:/data/shared:rw
+```
+
+Then the agent can export to `/data/shared/` and the files appear directly in `./wiki-exports/` on your host. No `docker compose cp` needed.
 
 ## Common Pitfalls
 

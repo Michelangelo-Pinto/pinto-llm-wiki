@@ -8,6 +8,8 @@ Practical guides for using wiki-js-mcp v3 across setup, workflows, and operation
 |----------|-------------|--------------|
 | [Quickstart](quickstart.md) | 8-container setup in 5 minutes | First time setup |
 | [Multi-MCP Setup](multi-mcp-setup.md) | Cursor configuration for 4 MCP servers | After Quickstart, before using tools |
+| [Agent Orientation](agent-orientation.md) | How to instruct the LLM agent: prompt templates, conventions, what to ask | Before first agent interaction |
+| [File Paths and Volumes](file-paths-and-volumes.md) | Where to put files for ingestion, where export output goes, how to use docker compose cp | Before ingesting documents or exporting |
 | [Docker Operations](docker-operations.md) | Build, test, debug commands | Day-to-day development |
 | [Troubleshooting](troubleshooting.md) | Common operational issues: containers, ports, Cursor, memory | Something is broken and you need to fix it |
 | [Development Setup](development-setup.md) | Dev environment, repo structure, local testing | Contributing to the project |
@@ -21,11 +23,12 @@ Practical guides for using wiki-js-mcp v3 across setup, workflows, and operation
 For an LLM agent operating against wiki-js-mcp v3, read in this order:
 
 1. **[LLM Wiki Workflows](llm-wiki-workflows.md)** — The four core workflows (Ingest, Query, Lint, Document Processing). This is the primary operating manual.
-2. **[OCR and Ingestion](ocr-and-ingestion-workflows.md)** — How to process external documents into Qdrant for semantic search.
-3. **[Import / Export](import-export.md)** — Markdown format spec and roundtrip procedures.
-4. **[Docker Operations](docker-operations.md)** — Build/test/debug commands when things go wrong.
+2. **[File Paths and Volumes](file-paths-and-volumes.md)** — Where files live in the container. Essential for ingestion and export.
+3. **[OCR and Ingestion](ocr-and-ingestion-workflows.md)** — How to process external documents into Qdrant for semantic search.
+4. **[Import / Export](import-export.md)** — Markdown format spec and roundtrip procedures.
+5. **[Docker Operations](docker-operations.md)** — Build/test/debug commands when things go wrong.
 
-Setup guides ([Quickstart](quickstart.md), [Multi-MCP Setup](multi-mcp-setup.md)) are for human operators, not agents.
+Setup guides ([Quickstart](quickstart.md), [Multi-MCP Setup](multi-mcp-setup.md), [Agent Orientation](agent-orientation.md)) are for human operators, not agents.
 
 ## Related Sections
 
