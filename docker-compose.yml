@@ -1,0 +1,286 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: wikijs_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wikijs}
+      POSTGRES_USER: ${POSTGRES_USER:-wikijs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - wikijs-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wikijs}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  wiki:
+    image: ghcr.io/requarks/wiki:2
+    container_name: wikijs_app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${WIKIJS_PORT:-3000}:3000"
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-wikijs}
+      DB_PASS: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-wikijs}
+      PORT: 3000
+    networks:
+      - wikijs-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:3000/ || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # One-shot service: completes Wiki.js initial setup via REST API.
+  # Runs only on first start (when Wiki.js is in setup mode).
+  setup:
+    image: curlimages/curl:latest
+    container_name: wikijs_setup
+    depends_on:
+      wiki:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - wikijs-net
+    environment:
+      WIKIJS_USERNAME: ${WIKIJS_USERNAME:-admin@example.com}
+      WIKIJS_PASSWORD: ${WIKIJS_PASSWORD:-admin123}
+      WIKIJS_SITE_URL: ${WIKIJS_SITE_URL:-http://localhost:3000}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo "Waiting for Wiki.js setup wizard..."
+        sleep 5
+        echo "Completing Wiki.js initial setup..."
+        curl -sf -X POST http://wiki:3000/finalize \
+          -H "Content-Type: application/json" \
+          -d "{\"siteUrl\":\"$${WIKIJS_SITE_URL}\",\"adminEmail\":\"$${WIKIJS_USERNAME}\",\"adminPassword\":\"$${WIKIJS_PASSWORD}\",\"telemetry\":false}"
+        echo ""
+        echo "Wiki.js setup completed. Waiting for restart..."
+        sleep 10
+
+  wiki-js-mcp:
+    build:
+      context: ./mcp-servers/wiki-js-mcp
+      dockerfile: Dockerfile
+    image: wiki-js-mcp:latest
+    container_name: wikijs_mcp
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      wiki:
+        condition: service_healthy
+    ports:
+      - "${MCP_PORT:-8000}:8000"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      WIKIJS_API_URL: ${WIKIJS_API_URL:-http://wiki:3000}
+      WIKIJS_TOKEN: ${WIKIJS_TOKEN:-}
+      WIKIJS_API_KEY: ${WIKIJS_API_KEY:-}
+      WIKIJS_USERNAME: ${WIKIJS_USERNAME:-}
+      WIKIJS_PASSWORD: ${WIKIJS_PASSWORD:-}
+      WIKIJS_MCP_DB: /data/wikijs_mappings.db
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FILE: /logs/wikijs_mcp.log
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8000
+      MCP_TRANSPORT: sse
+    volumes:
+      - mcp_data:/data
+      - mcp_logs:/logs
+    networks:
+      - wikijs-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8000' 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Qdrant MCP server wrapping the Qdrant REST API as MCP tools.
+  # Provides collection management and semantic vector search for LLM agents.
+  qdrant-mcp:
+    build:
+      context: ./mcp-servers/qdrant-mcp
+      dockerfile: Dockerfile
+    image: wiki-js-qdrant-mcp:latest
+    container_name: wikijs_qdrant_mcp
+    depends_on:
+      qdrant-db:
+        condition: service_healthy
+    ports:
+      - "${QDRANT_MCP_PORT:-8001}:8001"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant-db:6334}
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8001
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - shared_data:/data/shared:ro
+    networks:
+      - wikijs-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8001' 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ------------------------------------------------------------------
+  # v3 NEW SERVICES (replace embedded vector engine with distributed services)
+  # ------------------------------------------------------------------
+
+  # Ingestion Pipeline MCP server for document processing.
+  # Detects file types, extracts text (with OCR for scanned documents),
+  # chunks content, computes embeddings, and upserts to Qdrant.
+  ingestion-pipeline:
+    build:
+      context: ./mcp-servers/ingestion-pipeline
+      dockerfile: Dockerfile
+    image: wiki-js-ingestion-pipeline:latest
+    container_name: wikijs_ingestion
+    depends_on:
+      qdrant-db:
+        condition: service_healthy
+    ports:
+      - "${INGESTION_MCP_PORT:-8002}:8002"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant-db:6334}
+      QDRANT_COLLECTION_DOCUMENTS: ${QDRANT_COLLECTION_DOCUMENTS:-documents}
+      INGESTION_DB: /data/ingestion.db
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8002
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - shared_data:/data/shared:ro
+      - ingestion_data:/data
+    networks:
+      - wikijs-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8002' 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Tesseract OCR MCP server for document OCR and type detection.
+  # Provides text extraction from images and PDFs, document classification,
+  # HOCR output, and image preprocessing for improved accuracy.
+  tesseract-mcp:
+    build:
+      context: ./mcp-servers/tesseract-mcp
+      dockerfile: Dockerfile
+    image: wiki-js-tesseract-mcp:latest
+    container_name: wikijs_tesseract_mcp
+    ports:
+      - "${TESSERACT_MCP_PORT:-8003}:8003"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8003
+      TESSDATA_PREFIX: /usr/share/tesseract-ocr/5/tessdata
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - shared_data:/data/shared:ro
+    networks:
+      - wikijs-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8003' 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Qdrant vector database for semantic search and document retrieval.
+  # Replaces the v2 embedded vector engine (SQLite PageVector + sentence-transformers).
+  qdrant-db:
+    image: qdrant/qdrant:v1.17.1
+    container_name: wikijs_qdrant
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_GRPC_PORT:-6333}:6333"
+      - "${QDRANT_REST_PORT:-6334}:6334"
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6333
+      QDRANT__SERVICE__HTTP_PORT: 6334
+      QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"
+    volumes:
+      - qdrant_data:/qdrant/storage
+      - qdrant_snapshots:/qdrant/snapshots
+    networks:
+      - wikijs-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333' 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Test runner service for E2E tests and performance benchmarks.
+  # Profile "test": runs only against qdrant-db (fast, for Qdrant/E2E/perf tests).
+  # Profile "integration": runs against the full stack (Wiki.js + all 4 MCP servers + Qdrant).
+  test-runner:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile.test
+    image: wiki-js-test-runner:latest
+    container_name: wikijs_test_runner
+    profiles: ["test", "integration"]
+    depends_on:
+      qdrant-db:
+        condition: service_healthy
+    environment:
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant-db:6334}
+      QDRANT_MCP_URL: ${QDRANT_MCP_URL:-http://qdrant-mcp:8001}
+      INGESTION_MCP_URL: ${INGESTION_MCP_URL:-http://ingestion-pipeline:8002}
+      TESSERACT_MCP_URL: ${TESSERACT_MCP_URL:-http://tesseract-mcp:8003}
+      WIKIJS_MCP_URL: ${WIKIJS_MCP_URL:-http://wiki-js-mcp:8000}
+      WIKIJS_API_URL: ${WIKIJS_API_URL:-http://wiki:3000}
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./mcp-servers/qdrant-mcp/src:/app/qdrant_mcp:ro
+      - ./mcp-servers/ingestion-pipeline/src:/app/ingestion_pipeline:ro
+      - ./mcp-servers/wiki-js-mcp/src:/app/wiki_mcp_server:ro
+      - ./tests/test-data:/data/test-data:ro
+    networks:
+      - wikijs-net
+    command: pytest tests/ -v --tb=short
+
+networks:
+  wikijs-net:
+    driver: bridge
+
+volumes:
+  db_data:
+  mcp_data:
+  mcp_logs:
+  qdrant_data:
+  qdrant_snapshots:
+  shared_data:
+  ingestion_data:

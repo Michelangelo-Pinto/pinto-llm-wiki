@@ -1,0 +1,42 @@
+FROM python:3.12-slim
+
+# Test deps + ingestion-pipeline runtime (E2E imports tools directly)
+# + wiki-mcp-server runtime (regression/stack tests import tools directly)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir \
+    pytest>=7.4.0 \
+    pytest-asyncio>=0.21.0 \
+    pytest-xdist>=3.5.0 \
+    pytest-benchmark>=4.0.0 \
+    pytest-mock>=3.12.0 \
+    qdrant-client>=1.17.0 \
+    httpx>=0.27.0 \
+    sentence-transformers>=3.0.0 \
+    PyMuPDF>=1.24.0 \
+    python-docx>=1.1.0 \
+    pytesseract>=0.3.10 \
+    Pillow>=10.0.0 \
+    sqlalchemy>=2.0.0 \
+    aiosqlite>=0.19.0 \
+    pydantic>=2.0.0 \
+    pydantic-settings>=2.0.0 \
+    python-slugify>=8.0.0 \
+    markdown>=3.5.0 \
+    beautifulsoup4>=4.12.0 \
+    python-dotenv>=1.0.0 \
+    tenacity>=8.0.0 \
+    fastmcp>=0.1.0 \
+    numpy>=1.24.0 \
+    opencv-python-headless>=4.8.0
+
+WORKDIR /app
+
+# Set Python path so test imports work from any container source mount
+ENV PYTHONPATH=/app:/app/qdrant_mcp:/app/ingestion_pipeline:/app/wiki_mcp_server
+ENV PYTHONUNBUFFERED=1
+
+CMD ["pytest", "tests/", "-v", "--tb=short"]

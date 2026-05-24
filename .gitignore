@@ -1,0 +1,109 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+wikijs_mappings.db
+
+# Logs
+*.log
+logs/
+wikijs_mcp.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+mcp-servers/wiki-js-mcp/venv/
+mcp-servers/wiki-js-mcp/.env
+mcp-servers/wiki-js-mcp/logs/
+mcp-servers/wiki-js-mcp/*.db
+mcp-servers/wiki-js-mcp/wikijs_mappings.db
+
+# Poetry
+poetry.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+.coverage
+.pytest_cache/
+.tox/
+.nox/
+htmlcov/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup 
+
+# Docker volumes
+postgres_data/
+wikijs_data/
+mcp_data/
+mcp_logs/
+qdrant_data/
+qdrant_snapshots/
+ingestion_data/
+shared_data/
+
+# Resources
+resources/ 

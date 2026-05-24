@@ -1,0 +1,44 @@
+SYSTEM CONFIGURATION REFERENCE
+===============================
+
+Database Configuration
+---------------------
+Host: db.internal.example.com
+Port: 5432
+Database: production_main
+Pool Size: 20
+Connection Timeout: 30s
+SSL Mode: require
+
+Cache Configuration
+-------------------
+Type: Redis Cluster
+Nodes: redis-1:6379, redis-2:6379, redis-3:6379
+Max Memory: 4GB per node
+Eviction Policy: allkeys-lru
+Connection Pool: 50
+
+Logging Configuration
+---------------------
+Level: INFO
+Format: JSON
+Output: stdout + /var/log/app/app.log
+Rotation: Daily, keep 30 days
+
+API Configuration
+-----------------
+Rate Limit: 1000 requests/minute
+Max Request Size: 10MB
+CORS Origins: https://app.example.com, https://admin.example.com
+Authentication: JWT Bearer Token
+Token Expiry: 3600 seconds
+
+Monitoring
+----------
+Health Check: GET /health (every 30s)
+Metrics: Prometheus endpoint at :9090/metrics
+Alerts: PagerDuty integration for ERROR-level logs
+Tracing: Jaeger with 1% sampling rate
+
+This document is auto-generated. Do not edit manually.
+Last updated: 2026-05-23T14:30:00Z
