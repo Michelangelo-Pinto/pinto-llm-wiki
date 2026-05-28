@@ -6,6 +6,7 @@ Practical guides for using wiki-js-mcp v3 across setup, workflows, and operation
 
 | Document | Description | When to read |
 |----------|-------------|--------------|
+| [Stack Lifecycle](stack-lifecycle.md) | Build, start, stop, rebuild the 8-container stack | Before operating MCP tools or after code changes |
 | [Quickstart](quickstart.md) | 8-container setup in 5 minutes | First time setup |
 | [Multi-MCP Setup](multi-mcp-setup.md) | Cursor configuration for 4 MCP servers | After Quickstart, before using tools |
 | [Agent Orientation](agent-orientation.md) | How to instruct the LLM agent: prompt templates, conventions, what to ask | Before first agent interaction |
@@ -22,13 +23,14 @@ Practical guides for using wiki-js-mcp v3 across setup, workflows, and operation
 
 For an LLM agent operating against wiki-js-mcp v3, read in this order:
 
+0. **[Stack Lifecycle](stack-lifecycle.md)** — Build, start, stop, rebuild. Ensure the stack is up before any MCP workflow.
 1. **[LLM Wiki Workflows](llm-wiki-workflows.md)** — The four core workflows (Ingest, Query, Lint, Document Processing). This is the primary operating manual.
 2. **[File Paths and Volumes](file-paths-and-volumes.md)** — Where files live in the container. Essential for ingestion and export.
 3. **[OCR and Ingestion](ocr-and-ingestion-workflows.md)** — How to process external documents into Qdrant for semantic search.
 4. **[Import / Export](import-export.md)** — Markdown format spec and roundtrip procedures.
-5. **[Docker Operations](docker-operations.md)** — Build/test/debug commands when things go wrong.
+5. **[Docker Operations](docker-operations.md)** — Tests, DB inspection, advanced debugging when things go wrong.
 
-Setup guides ([Quickstart](quickstart.md), [Multi-MCP Setup](multi-mcp-setup.md), [Agent Orientation](agent-orientation.md)) are for human operators, not agents.
+Setup guides ([Quickstart](quickstart.md), [Multi-MCP Setup](multi-mcp-setup.md), [Agent Orientation](agent-orientation.md)) are primarily for human operators.
 
 ## Related Sections
 

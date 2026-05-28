@@ -14,7 +14,8 @@ Multi-MCP server ecosystem wrapping Wiki.js with Qdrant vector search, Tesseract
 | [MCP Servers](mcp-servers/index.md) | Per-server tool catalogs and configuration | Looking up a specific server |
 | [Features](features/index.md) | Tool features by priority and MCP server | Understanding what tools do |
 | [Patterns](patterns/index.md) | Code patterns, cross-server communication | Understanding conventions |
-| [Guides](guides/index.md) | Quickstart, workflows, Docker operations | How-to instructions |
+| [Guides](guides/index.md) | Quickstart, workflows, stack lifecycle, Docker operations | How-to instructions |
+| [Stack Lifecycle](guides/stack-lifecycle.md) | Build, start, stop, rebuild the 8-container stack | Before operating MCP tools |
 | [Tool Catalog](reference/tool-catalog.md) | All ~65 tools with signatures | Looking up tool parameters |
 | [Reference](reference/index.md) | Configuration, testing, test results | Technical reference |
 | [Migration](migration/index.md) | v2 to v3 migration steps | Migrating from v2 |
@@ -81,15 +82,16 @@ flowchart TD
 ### For LLM agents
 
 1. [Quick Reference](reference/quick-reference.md) — Start here: all tools, collections, workflows, and ports on one page
-2. [System Overview](architecture/system-overview.md) — The 8 containers, how they connect
-3. [Multi-MCP Architecture](architecture/multi-mcp-architecture.md) — Why 4 servers, how they communicate
-4. [MCP Server Registry](architecture/mcp-server-registry.md) — Which server does what
-5. [Data Flow](architecture/data-flow.md) — Request lifecycle diagrams for every major operation
-6. [Qdrant Vector DB](architecture/qdrant-vector-db.md) — Collection schemas, embedding model, backup
-7. [Ingestion Pipeline Design](architecture/ingestion-pipeline-design.md) — How documents are processed end-to-end
-8. [Database](architecture/database.md) — What's stored in SQLite vs Qdrant
-9. [File Paths and Volumes](guides/file-paths-and-volumes.md) — Container paths for ingestion and exports
-10. [LLM Wiki Workflows](guides/llm-wiki-workflows.md) — Core operating patterns (Ingest, Query, Lint)
-11. [Tool Catalog](reference/tool-catalog.md) — All ~65 tools with full signatures
-12. [Error Catalog](reference/error-catalog.md) — Common errors and solutions
-13. [Features](features/index.md) — Feature catalog by priority level
+2. [Stack Lifecycle Guide](guides/stack-lifecycle.md) — Build, start, stop, rebuild; verify stack before operating
+3. [System Overview](architecture/system-overview.md) — The 8 containers, how they connect
+4. [Multi-MCP Architecture](architecture/multi-mcp-architecture.md) — Why 4 servers, how they communicate
+5. [MCP Server Registry](architecture/mcp-server-registry.md) — Which server does what
+6. [Data Flow](architecture/data-flow.md) — Request lifecycle diagrams for every major operation
+7. [Qdrant Vector DB](architecture/qdrant-vector-db.md) — Collection schemas, embedding model, backup
+8. [Ingestion Pipeline Design](architecture/ingestion-pipeline-design.md) — How documents are processed end-to-end
+9. [Database](architecture/database.md) — What's stored in SQLite vs Qdrant
+10. [File Paths and Volumes](guides/file-paths-and-volumes.md) — Container paths for ingestion and exports
+11. [LLM Wiki Workflows](guides/llm-wiki-workflows.md) — Core operating patterns (Ingest, Query, Lint)
+12. [Tool Catalog](reference/tool-catalog.md) — All ~65 tools with full signatures
+13. [Error Catalog](reference/error-catalog.md) — Common errors and solutions
+14. [Features](features/index.md) — Feature catalog by priority level

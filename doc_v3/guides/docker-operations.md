@@ -1,5 +1,7 @@
 # Docker Operations (v3)
 
+For stack start/stop/rebuild, see [Stack Lifecycle Guide](stack-lifecycle.md).
+
 Commands for building, testing, and managing the 8-container Docker stack.
 
 ## Quick Reference

@@ -45,7 +45,7 @@ plans/                # Storico pianificazione (plans/llm-wiki/AGENTS.md = v2, o
 5. **`log.md` e' append-only** (`wikijs_append_to_page`), formato riga `## [YYYY-MM-DD] tipo | descrizione`. `index.md` aggiornato a ogni ingest.
 6. **`/data/shared`**: montato **ro** su qdrant-mcp, ingestion-pipeline, tesseract-mcp (NON su wiki-js-mcp). Per spostare file tra container serve `docker compose cp`.
 7. **Contratto JSON**: ogni tool ritorna `json.dumps(...)`; errori = `{"error": "..."}`.
-8. **Confini umani** (l'agente NON puo'): `docker compose up/build`, editare `.env`/`mcp.json`, `docker compose cp`, installare lingue Tesseract (default `eng+ita`), posizionare raw source.
+8. **Confini agente**: l'agente puo' eseguire `docker compose build/up/down/restart/logs/ps` **solo su richiesta esplicita dell'utente** (vedi [Stack Lifecycle Guide](doc_v3/guides/stack-lifecycle.md)). NON puo' editare `.env`/`mcp.json`, eseguire `docker compose cp`, `docker compose down -v` senza conferma, installare lingue Tesseract (default `eng+ita`), posizionare raw source.
 9. **Cancellazioni batch**: `confirm_deletion=True`. Pagine identificate da **ID interi**, gerarchia path-based, `locale: "en"`, `editor: "markdown"`.
 10. **Nomi tool rimossi in v3**: `wikijs_vector_search`, `wikijs_rebuild_vector_index` — non usarli.
 11. **Attribuzione fonte obbligatoria**: ogni pagina wiki creata da contenuto esterno deve includere nel frontmatter `source_type`, `source_url` o `source_file`, `source_name`, `fetched_at`. Vedi `.cursor/rules/35-web-ingestion.mdc`.
@@ -67,6 +67,7 @@ All'inizio di ogni sessione operativa:
 | Documento | Contenuto |
 |-----------|-----------|
 | [Quick Reference](doc_v3/reference/quick-reference.md) | Tutti i 65 tool in formato compatto |
+| [Stack Lifecycle Guide](doc_v3/guides/stack-lifecycle.md) | Build, start, stop, rebuild dello stack Docker |
 | [LLM Wiki Workflows](doc_v3/guides/llm-wiki-workflows.md) | Workflow passo-passo: Ingest, Query, Lint, Document Processing |
 | [Tool Catalog](doc_v3/reference/tool-catalog.md) | Firme complete di tutti i tool |
 | [File Paths and Volumes](doc_v3/guides/file-paths-and-volumes.md) | Dove mettere i file per ingestion/export |

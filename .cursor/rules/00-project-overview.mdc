@@ -36,4 +36,4 @@ Tutti su path `/sse`. Stack: 8 container avviati, 7 a regime (`wikijs_setup` esc
 - **Strumenti rimossi in v3**: `wikijs_vector_search`, `wikijs_rebuild_vector_index`
 - **log.md** append-only; **index.md** aggiornato a ogni ingest
 - **Contratto JSON**: tutti i tool ritornano `json.dumps(...)`; errori = `{"error": "..."}`
-- **Confini agente**: niente `docker compose up/build`, niente edit `.env`/`mcp.json`, niente `docker compose cp`
+- **Confini agente**: `docker compose build/up/down/restart/logs/ps` solo su richiesta esplicita; niente edit `.env`/`mcp.json`, niente `docker compose cp`, niente `docker compose down -v` senza conferma
