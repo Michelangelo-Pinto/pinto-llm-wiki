@@ -161,4 +161,4 @@ Tutta la documentazione dettagliata si trova in **[`doc_v3/`](doc_v3/index.md)**
 
 ## Licenza
 
-MIT — vedi [LICENSE](LICENSE)
+Proprietaria — Tutti i diritti riservati — vedi [LICENSE](LICENSE)
