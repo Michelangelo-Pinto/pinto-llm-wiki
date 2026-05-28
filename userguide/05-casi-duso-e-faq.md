@@ -29,6 +29,18 @@ Vuoi una "seconda memoria" digitale dove riversare appunti, articoli, note e pot
 2. Interroghi in linguaggio naturale: "Cosa ho salvato sul tema X?"
 3. L'agente mantiene indici e riassunti aggiornati
 
+### Ricerca web e archiviazione nella wiki
+
+Vuoi salvare pagine web, articoli, o documentazione online nella tua knowledge base, con tracciamento della fonte (URL, data).
+
+**Flusso tipico:**
+1. Chiedi all'agente: "Vai su questo URL e portalo nella wiki"
+2. L'agente usa il browser MCP per navigare, estrarre il contenuto e creare una pagina wiki
+3. La pagina include automaticamente la fonte (URL, data acquisizione) nel frontmatter
+4. Puoi sempre risalire a dove hai preso ogni informazione
+
+Se la pagina e' complessa (molte immagini, PDF), l'agente usa il Percorso B: salva il contenuto in `agent_tmp/artifacts/`, ti chiede di copiarlo in `/data/shared/`, e poi esegue l'ingestion completa con pipeline OCR/chunking.
+
 ## FAQ
 
 ### Che differenza c'e' tra `wikijs_search` e `wikijs_smart_query`?
@@ -55,6 +67,21 @@ Un container (`wiki-init`) esegue l'inizializzazione di Wiki.js (migration del D
 
 L'agente puo' modificare, creare e cancellare pagine wiki. Le **sorgenti grezze** (PDF, immagini originali) sono immutabili per l'agente — solo l'umano puo' modificarle o cancellarle. Definisci regole chiare in `AGENTS.md` per limitare cosa l'agente puo' fare.
 
+### Come faccio a portare una pagina web nella wiki?
+
+Chiedi all'agente: "Vai su questo URL e portalo nella wiki". L'agente usera' un browser MCP (Playwright DevTools o Cursor integrato) per navigare, estrarre il contenuto, e creare una pagina wiki con l'attribuzione della fonte (URL, data). Vedi `.cursor/rules/35-web-ingestion.mdc` per i dettagli.
+
+### Come vengono tracciate le fonti?
+
+Ogni pagina wiki creata da contenuto esterno include nel **frontmatter**:
+- `source_type`: `web` (da browser), `file` (da PDF/DOCX), o `upload` (da scansione)
+- `source_url`: l'URL completo se proviene dal web
+- `source_file`: il nome del file originale
+- `source_name`: un nome descrittivo (titolo articolo, nome libro)
+- `fetched_at`: data di acquisizione
+
+Queste informazioni sono visibili nei metadati della pagina wiki e nel `log.md` della KB.
+
 ## Cosa l'agente puo' fare
 
 - Creare, modificare, organizzare e cancellare pagine wiki
@@ -64,6 +91,8 @@ L'agente puo' modificare, creare e cancellare pagine wiki. Le **sorgenti grezze*
 - Generare riassunti e mantenere cross-reference
 - Diagnosticare problemi strutturali della wiki (health check)
 - Navigare il grafo dei link (backlink, shortest path, orfane)
+- **Navigare sul web con un browser MCP** ed estrarre contenuti da pagine, articoli e documentazione online
+- **Tracciare automaticamente la fonte** di ogni contenuto (URL, nome file, data)
 
 ## Cosa l'agente NON puo' fare
 

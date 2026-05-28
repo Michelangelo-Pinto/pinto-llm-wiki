@@ -79,6 +79,54 @@ flowchart TD
 
 See [OCR and Ingestion Workflows](ocr-and-ingestion-workflows.md) for detailed document processing patterns.
 
+## Web Ingestion Workflow (NEW in v3)
+
+Bring web content (articles, documentation, online PDFs) into the wiki using a browser MCP, with automatic source attribution.
+
+```mermaid
+flowchart TD
+    Rileva["0. Detect available browser\nPlaywright MCP or Cursor browser"]
+    Choice{"Content\ntype?"}
+    PathA_A["A1. Navigate to URL"]
+    PathA_B["A2. Extract content\n(content_get-as-text/HTML)"]
+    PathA_C["A3. Format as clean markdown"]
+    PathA_D["A4. wikijs_create_page\nWith source frontmatter"]
+    PathB_A["B1. Navigate to URL"]
+    PathB_B["B2. Extract + save as MD file\nin agent_tmp/artifacts/"]
+    PathB_C["B3. User copies file\nto /data/shared/"]
+    PathB_D["B4. ingest_document\nFull pipeline (OCR/chunk/embed)"]
+    PathB_E["B5. wikijs_create_page\nWith source frontmatter"]
+    LogA["A5. wikijs_append_to_page\nLog: web | URL"]
+    LogB["B6. wikijs_append_to_page\nLog: web | URL"]
+
+    Rileva --> Choice
+    Choice -->|"simple text"| PathA_A --> PathA_B --> PathA_C --> PathA_D --> LogA
+    Choice -->|"complex/images/PDF"| PathB_A --> PathB_B --> PathB_C --> PathB_D --> PathB_E --> LogB
+```
+
+**Path A — Direct (text articles, documentation):**
+
+1. Navigate to URL with browser MCP
+2. Extract content: `content_get-as-text` or `content_get-as-html` (Playwright) / `browser_snapshot` + CDP (Cursor)
+3. Format as clean markdown (strip nav, headers, footers)
+4. `wikijs_create_page(title="Page Title", content=markdown)` with source frontmatter:
+   ```yaml
+   source_type: web
+   source_url: "https://..."
+   source_name: "Article Title"
+   fetched_at: "2026-05-29"
+   ```
+
+**Path B — Pipeline (complex pages, images, PDFs from web):**
+
+1. Navigate to URL with browser MCP
+2. Extract and save as markdown file in `agent_tmp/artifacts/`
+3. Ask user to copy to `/data/shared/` (agent cannot `docker compose cp`)
+4. `ingest_document(file_path="/data/shared/file.md")` → full pipeline
+5. `wikijs_create_page(title="...", content=chunks)` with source frontmatter
+
+**Source attribution is MANDATORY** for every externally-sourced wiki page. See `.cursor/rules/35-web-ingestion.mdc` for the complete format, image handling, and error recovery rules.
+
 ## Lint Workflow
 
 Run health checks and fix issues.

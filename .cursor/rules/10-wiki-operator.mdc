@@ -32,9 +32,11 @@ wikijs_search_pages("topic") → wikijs_get_page_stats(candidates)
 ingest_document(file_path="/data/shared/doc.pdf") → document_id
 → ingest_get_status(document_id) → verifica chunks creati
 → ingest_search_chunks(query="topic", limit=5) → contenuto rilevante
-→ wikijs_create_page(title="Da: doc.pdf", content=chunks)
+→ wikijs_create_page(title="Da: doc.pdf", content=chunks, frontmatter={source_type:"file", source_file:"doc.pdf", ...})
 → wikijs_get_affected_pages(page_id) → impatto
 ```
+
+**Attribuzione fonte OBBLIGATORIA**: la pagina wiki creata deve includere nel frontmatter: `source_type`, `source_file`, `source_name`, `fetched_at`. Vedi `.cursor/rules/35-web-ingestion.mdc` per il formato completo.
 
 ### 3. Query (ricerca semantica + sintesi)
 
@@ -58,6 +60,29 @@ wikijs_wiki_health() → dashboard issues (7 check)
 
 Usa `include_checks=["orphans", "stale"]` per scoping. Health completo (7 check) settimanalmente.
 
+### 6. Web Ingestion (browser → wiki)
+
+Vedi `.cursor/rules/35-web-ingestion.mdc` per i dettagli completi.
+
+**Percorso A — Diretto (pagine testuali):**
+```
+Browser: naviga URL → estrai contenuto (testo/HTML)
+→ Formatta in markdown pulito
+→ wikijs_create_page(title="Titolo", content=markdown, frontmatter={source_type:"web", source_url:url, ...})
+→ wikijs_append_to_page(log_id, "## [YYYY-MM-DD] web | URL — Titolo")
+```
+
+**Percorso B — Pipeline (pagine complesse, immagini, PDF):**
+```
+Browser: naviga URL → estrai e salva in agent_tmp/artifacts/
+→ Chiedi all'utente: copia il file in /data/shared/
+→ ingest_document(file_path="/data/shared/file.md") → ingest_get_status
+→ wikijs_create_page(title="Titolo", content=chunks, frontmatter={source_type:"web", source_url:url, ...})
+→ wikijs_append_to_page(log_id, "## [YYYY-MM-DD] web | URL — Titolo")
+```
+
+**Attribuzione fonte OBBLIGATORIA**: frontmatter con `source_type: "web"`, `source_url`, `source_name`, `fetched_at`.
+
 ### 5. OCR (documenti scansionati)
 
 ```
@@ -65,8 +90,12 @@ ocr_detect_document_type(input_path) → tipo documento
 → ocr_extract_text(input_path, language="eng+ita")
 → ocr_get_confidence(input_path) → se <70%
 → ocr_preprocess_and_extract(input_path, preprocess_steps=["deskew","denoise","threshold"])
-→ wikijs_create_page(title="Contenuto Scannerizzato", content=extracted_text)
+→ wikijs_create_page(title="Contenuto Scannerizzato", content=extracted_text, frontmatter={source_type:"upload", source_file:filename, ...})
 ```
+
+**Attribuzione fonte OBBLIGATORIA**: includi nel frontmatter `source_type: "upload"`, `source_file` (nome file originale), `source_name` (nome descrittivo), `fetched_at`.
+
+### 6. Web Ingestion (browser → wiki)
 
 ## Hard rules / Anti-pattern
 

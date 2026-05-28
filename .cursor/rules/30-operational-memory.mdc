@@ -22,7 +22,7 @@ Formato riga (append-only via `wikijs_append_to_page`):
 ## [YYYY-MM-DD] tipo | descrizione
 ```
 
-Tipi: `ingest`, `query`, `lint`, `document-processing`, `ocr`, `export`, `import`, `fix`.
+Tipi: `ingest`, `query`, `lint`, `document-processing`, `ocr`, `export`, `import`, `fix`, `web`.
 
 Esempi:
 ```
@@ -71,10 +71,11 @@ Al termine di ogni operazione significativa:
 
 | Tipo | Cosa registrare in log.md |
 |------|--------------------------|
-| **ingest** | Topic, numero pagine create/aggiornate, pagine affected |
+| **ingest** | Topic, numero pagine create/aggiornate, pagine affected, source_url o source_file |
 | **query** | Domanda, pagine consultate, risposta sintetica (opzionale: crea pagina dedicata) |
 | **lint** | Health check eseguiti, issues trovati, fix applicati |
-| **document-processing** | File ingerito, chunks creati, pagina wiki creata, pagine affected |
-| **ocr** | File processato, lingua, confidence score, pagina wiki creata |
+| **document-processing** | File ingerito, chunks creati, pagina wiki creata, pagine affected, source_file |
+| **ocr** | File processato, lingua, confidence score, pagina wiki creata, source_file |
+| **web** | URL, titolo pagina, metodo (diretto/pipeline), pagina wiki creata, source_url |
 | **export** | Directory export, numero pagine, scopo |
 | **import** | Directory import, `update_existing` flag, pagine create/aggiornate |

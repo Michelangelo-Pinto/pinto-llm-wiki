@@ -42,6 +42,15 @@ L'agente chiamera' `wikijs_smart_query` (o una combinazione di `qdrant_search` +
 
 L'agente chiamera' `wikijs_wiki_health` e ti dara' un report: pagine orfane, backlink mancanti, pagine vuote o obsolete.
 
+## Passo 5 — Web ingestion (portare una pagina web nella wiki)
+
+> **Prompt:** Vai su https://it.wikipedia.org/wiki/Grafo_della_conoscenza, estrai il contenuto e crea una pagina wiki.
+> (oppure: "usa il browser di Cursor e portami questo articolo nella wiki")
+
+L'agente aprira' il browser MCP (Playwright o Cursor integrato), navighera' all'URL, estrarra' il contenuto, lo formattera' in markdown e creera' una pagina wiki con l'attribuzione della fonte nel frontmatter (`source_type: "web"`, `source_url`, `source_name`, `fetched_at`).
+
+Per contenuti complessi (molte immagini, PDF), l'agente puo' usare il Percorso B (salva file → chiedi copia in `/data/shared/` → `ingest_document`). Vedi `.cursor/rules/35-web-ingestion.mdc`.
+
 ## Riassunto del flusso
 
 ```

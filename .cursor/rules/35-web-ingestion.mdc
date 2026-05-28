@@ -1,0 +1,144 @@
+---
+description: Web ingestion tramite browser MCP: navigare, estrarre contenuti web (pagine, articoli, documenti) e ingerirli nella wiki con attribuzione della fonte (URL, data, nome). Supporta Playwright DevTools MCP e Cursor browser integrato.
+alwaysApply: false
+---
+
+# Web Ingestion — Browser MCP + Wiki
+
+L'agente puo' usare un browser MCP per navigare sul web, estrarre contenuti e portarli nella knowledge base. Ogni contenuto ingerito deve riportare la **fonte** (URL, nome file, data acquisizione) sia nel frontmatter della pagina wiki che nel `log.md`.
+
+## Rilevazione del browser disponibile
+
+Controlla in quest'ordine e usa il primo disponibile:
+
+1. **Browser DevTools MCP** (Playwright, 44 tool) — server `user-serkan-ozal.browser-devtools-mcp-vscode-extension-browser-devtools`. Il piu' potente: navigazione, estrazione testo/HTML, screenshot, PDF, batch execution.
+2. **cursor-ide-browser** — Cursor integrato. Strumenti: `browser_navigate`, `browser_snapshot`, `browser_take_screenshot`, `browser_cdp`, `browser_click`, etc.
+
+L'utente puo' specificare quale usare: "usa Playwright" o "usa il browser di Cursor".
+
+## Due percorsi di ingestion
+
+### Percorso A — Diretto (pagine testuali, articoli, documentazione)
+
+Per contenuti prevalentemente testuali senza necessita' di OCR/chunking pesante:
+
+1. **Naviga** all'URL con il browser.
+2. **Estrai** il contenuto:
+   - Playwright: `content_get-as-text` (testo visibile) o `content_get-as-html` (HTML sorgente)
+   - Cursor: `browser_snapshot` (snapshot accessibilita') + `browser_cdp` con `Runtime.evaluate` per estrarre `document.body.innerText`
+3. **Formatta** in markdown pulito (titolo, metadati, corpo). Rimuovi header/footer/sidebar. Mantieni la struttura (intestazioni, paragrafi, liste).
+4. **Crea pagina wiki** con `wikijs_create_page`. Il contenuto DEVE includere il frontmatter con attribuzione fonte (vedi sezione "Attribuzione della fonte").
+5. **Registra** in wiki `log.md` e in `agent_tmp/`.
+
+```
+[INFO] | Navigo su https://example.com/article
+[OK] | Pagina caricata, estratto testo (~3500 caratteri)
+[INFO] | Creo pagina wiki: "Titolo articolo"
+[OK] | Pagina wiki creata, id=42, source_url=https://example.com/article
+[INFO] | Registrato in log.md: web | https://example.com/article — Titolo articolo
+```
+
+### Percorso B — Pipeline (pagine complesse, con molte immagini, PDF dal web)
+
+Per contenuti ricchi di immagini, PDF, o quando serve l'indicizzazione semantica completa:
+
+1. **Naviga** all'URL con il browser.
+2. **Estrai e salva** il contenuto come file markdown in `agent_tmp/artifacts/`. Includi immagini scaricate o referenziate (vedi "Gestione immagini").
+3. **Chiedi all'utente** di copiare il file in `/data/shared/` (l'agente NON puo' eseguire `docker compose cp`):
+   ```
+   Ho salvato il contenuto in agent_tmp/artifacts/nome-file.md.
+   Copialo in /data/shared/ con:
+     cp agent_tmp/artifacts/nome-file.md /data/shared/
+   ```
+4. Una volta copiato: **`ingest_document(file_path="/data/shared/nome-file.md")`** → pipeline completa (detect → extract → chunk → embed → upsert su Qdrant).
+5. **Crea/aggiorna pagina wiki** con `wikijs_create_page`, includendo fonte nel frontmatter.
+6. **Registra** in wiki `log.md` e `agent_tmp/`.
+
+## Attribuzione della fonte (OBBLIGATORIO)
+
+Ogni pagina wiki creata da contenuto esterno DEVE includere nel **frontmatter markdown** queste proprieta':
+
+```yaml
+---
+title: "Titolo della pagina"
+description: "Breve descrizione del contenuto"
+source_type: web          # web | file | upload
+source_url: "https://..." # URL completo se source_type=web
+source_file: "nome.pdf"   # nome file se source_type=file o upload
+source_name: "Titolo"     # nome descrittivo (titolo articolo, nome libro)
+fetched_at: "2026-05-29"  # data acquisizione (YYYY-MM-DD)
+tags: ["tag1", "tag2"]
+---
+```
+
+### Esempi per tipo di fonte
+
+**Da browser (web):**
+```yaml
+source_type: web
+source_url: "https://en.wikipedia.org/wiki/Knowledge_graph"
+source_name: "Knowledge graph — Wikipedia"
+fetched_at: "2026-05-29"
+```
+
+**Da PDF caricato dall'utente (file):**
+```yaml
+source_type: file
+source_file: "manuale-architettura.pdf"
+source_name: "Manuale di Architettura Software, Terza Edizione"
+fetched_at: "2026-05-28"
+```
+
+**Da scansione/upload (upload):**
+```yaml
+source_type: upload
+source_file: "scansione-atti-2024.pdf"
+source_name: "Atti del Convegno 2024 — scansione"
+fetched_at: "2026-05-27"
+```
+
+### Registrazione nel log
+
+Nel wiki `log.md`:
+```
+## [YYYY-MM-DD] web | https://example.com/article — Titolo articolo
+## [YYYY-MM-DD] document-processing | manuale-architettura.pdf (12 chunks, source_file)
+## [YYYY-MM-DD] ocr | scansione-atti-2024.pdf (ita, confidence 82%, source_file)
+```
+
+In `agent_tmp/sessions/.../log.md`: registra anche l'URL esatto, tool usati, tempi di risposta, eventuali errori di fetch.
+
+## Gestione immagini
+
+- **Immagine accessibile via URL pubblico**: mantieni il riferimento markdown `![](https://example.com/img.png)`. Il browser del lettore la carichera' direttamente.
+- **Immagine da archiviare localmente**: se la fonte potrebbe sparire o l'immagine e' critica, scaricala in `agent_tmp/artifacts/img/`, chiedi all'utente di copiarla in `/data/shared/`, e referenziala con path relativo.
+- Nel frontmatter della pagina wiki: `source_images: ["https://...", "/data/shared/img/diagram.png"]`
+
+## Gestione errori
+
+| Errore | Azione |
+|--------|--------|
+| **Timeout navigazione** | Riprova una volta. Se fallisce ancora, registra `[ERR]` e chiedi all'utente se l'URL e' corretto. |
+| **Login wall / paywall** | Registra `[WARN]` e informa l'utente: il contenuto non e' accessibile pubblicamente. |
+| **Contenuto troppo grande** (>50KB) | Passa automaticamente al Percorso B (salva file, chiedi copia in /data/shared). |
+| **Browser non disponibile** | Informa l'utente: nessun browser MCP rilevato. Suggerisci di verificare la configurazione MCP. |
+| **Errore estrazione contenuto** | Prova l'altro metodo di estrazione (text invece di HTML, o viceversa). Se entrambi falliscono, salva uno screenshot e informa l'utente. |
+| **PDF dal web** | Se l'URL punta a un PDF, scarica il file in `agent_tmp/artifacts/`, chiedi all'utente di copiarlo in `/data/shared/`, poi usa `ingest_document`. |
+
+## Checklist di chiusura
+
+Al termine di ogni web ingestion:
+
+1. **Pagina wiki creata** con frontmatter completo (source_type, source_url/file, source_name, fetched_at)
+2. **Wiki log.md aggiornato** con voce `## [YYYY-MM-DD] web | URL — Titolo`
+3. **agent_tmp/** aggiornato: `log.md` con dettaglio operazione, `context.md` con pagine toccate, `index.md` con nuova entry sessione
+4. **Se Percorso B**: file puliti da `agent_tmp/artifacts/` dopo la copia riuscita
+5. **Se immagini locali**: verifica che i path referenziati siano accessibili
+
+## Integrazione con gli altri workflow
+
+Il web ingestion si integra con il workflow standard di Document Processing. Una volta che il contenuto e' nella wiki:
+- Usa `wikijs_get_affected_pages` per trovare pagine correlate da aggiornare
+- Usa `wikijs_smart_query` per verificare che il nuovo contenuto sia trovabile semanticamente
+- Se il contenuto e' passato da Percorso B (pipeline), e' gia' indicizzato su Qdrant
+- Se Percorso A (diretto), valuta se fare `qdrant_upsert_chunks` per la ricerca semantica

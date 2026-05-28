@@ -30,7 +30,7 @@ plans/                # Storico pianificazione (plans/llm-wiki/AGENTS.md = v2, o
 
 ## Scegli il tuo ruolo
 
-- **Operatore** della knowledge base → leggi `.cursor/rules/10-wiki-operator.mdc` + `.cursor/rules/25-agent-logging.mdc` + `.cursor/rules/30-operational-memory.mdc`
+- **Operatore** della knowledge base → leggi `.cursor/rules/10-wiki-operator.mdc` + `.cursor/rules/25-agent-logging.mdc` + `.cursor/rules/30-operational-memory.mdc` + `.cursor/rules/35-web-ingestion.mdc`
 - **Sviluppatore** del codice MCP → leggi `.cursor/rules/20-wiki-developer.mdc`
 - La regola `.cursor/rules/00-project-overview.mdc` e' sempre attiva con i fatti essenziali.
 
@@ -48,6 +48,7 @@ plans/                # Storico pianificazione (plans/llm-wiki/AGENTS.md = v2, o
 8. **Confini umani** (l'agente NON puo'): `docker compose up/build`, editare `.env`/`mcp.json`, `docker compose cp`, installare lingue Tesseract (default `eng+ita`), posizionare raw source.
 9. **Cancellazioni batch**: `confirm_deletion=True`. Pagine identificate da **ID interi**, gerarchia path-based, `locale: "en"`, `editor: "markdown"`.
 10. **Nomi tool rimossi in v3**: `wikijs_vector_search`, `wikijs_rebuild_vector_index` — non usarli.
+11. **Attribuzione fonte obbligatoria**: ogni pagina wiki creata da contenuto esterno deve includere nel frontmatter `source_type`, `source_url` o `source_file`, `source_name`, `fetched_at`. Vedi `.cursor/rules/35-web-ingestion.mdc`.
 
 ---
 
