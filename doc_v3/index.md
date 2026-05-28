@@ -4,6 +4,8 @@ Multi-MCP server ecosystem wrapping Wiki.js with Qdrant vector search, Tesseract
 
 **~65 tools across 4 MCP servers in 8 Docker containers.**
 
+> *For human-friendly onboarding in Italian, see the [User Guide](../userguide/index.md).*
+
 ## Quick Navigation
 
 | Section | Description | Best for |
@@ -68,7 +70,8 @@ flowchart TD
 
 ### For human operators
 
-1. [Quickstart](guides/quickstart.md) — Get the 8-container stack running
+1. [User Guide](../userguide/index.md) — Onboarding narrativo in italiano (consigliato per iniziare)
+2. [Quickstart](guides/quickstart.md) — Get the 8-container stack running
 2. [Multi-MCP Setup](guides/multi-mcp-setup.md) — Configure Cursor for 4 MCP servers
 3. [Agent Orientation](guides/agent-orientation.md) — How to instruct the LLM agent
 4. [File Paths and Volumes](guides/file-paths-and-volumes.md) — Where files go, how to copy them

@@ -6,15 +6,38 @@
 
 Fornisce **~65 strumenti MCP** suddivisi su **4 server indipendenti** in **8 container Docker**: gestione pagine wiki, ricerca semantica vettoriale (Qdrant), OCR documentale (Tesseract), e una pipeline di ingestion che processa PDF, DOCX, immagini e Markdown.
 
+> **Nuovo qui?** Parti dalla [Guida Utente](userguide/index.md) — un percorso di onboarding pensato per umani, in italiano.
+
+---
+
+## Perche' esiste
+
+Una knowledge base invecchia. La parte noiosa non e' leggere o pensare, ma il **bookkeeping**: aggiornare i cross-reference, tenere i riassunti allineati, accorgersi delle contraddizioni, mantenere coerenza tra decine di pagine. I documenti grezzi (PDF, scansioni, DOCX) non sono cercabili per significato.
+
+**wiki-js-mcp** applica il **pattern LLM Wiki**: una knowledge base mantenuta da un agente LLM. L'agente non si annoia, non dimentica un cross-reference e puo' toccare 15 pagine in un colpo solo. Tre livelli: **sorgenti grezze** (immutabili, solo umano), **la wiki** (pagine markdown interconnesse, gestite dall'agente), e **lo schema** (convenzioni e workflow in `AGENTS.md` e `.cursor/rules/`, definiti da umano + agente).
+
+## Quali problemi risolve
+
+- **"Ho centinaia di PDF e scansioni e non riesco a cercarli per significato"** — ingestion con OCR automatico (Tesseract) e ricerca semantica vettoriale (Qdrant)
+- **"La documentazione e' disordinata e va aggiornata a mano"** — l'agente mantiene index, cross-reference, log e tiene tutto coerente
+- **"Voglio interrogare la mia conoscenza in linguaggio naturale dall'IDE"** — MCP + `wikijs_smart_query` direttamente da Cursor
+- **"Le pagine diventano orfane o obsolete"** — `wikijs_wiki_health` rileva pagine abbandonate e problemi strutturali
+
+## Per chi e'
+
+- **Sviluppatori e ricercatori** che vogliono una knowledge base interrogabile in linguaggio naturale senza uscire dall'IDE
+- **Team tecnici** con molti documenti da rendere cercabili e una wiki da mantenere viva nel tempo
+- **Chiunque voglia delegare il bookkeeping della conoscenza a un agente LLM**, concentrandosi solo sul contenuto che conta
+
 ---
 
 ## Cosa puoi fare
 
-- **Gestire pagine wiki** — creare, modificare, cercare, importare/esportare e organizzare gerarchicamente pagine Wiki.js, tutto tramite LLM
-- **Ricerca semantica** — interrogare la wiki con linguaggio naturale usando embedding vettoriali (all-MiniLM-L6-v2) su Qdrant
-- **Grafo dei link** — esplorare backlink, trovare shortest path e rilevare pagine orfane
-- **Ingestion documentale** — caricare PDF, DOCX, Markdown, immagini; estrarre testo (con OCR per documenti scansionati); chunk-are e indicizzare semanticamente su Qdrant
-- **OCR** — estrarre testo da immagini e PDF scansionati con Tesseract, incluso preprocessing adattivo (deskew, denoise, threshold)
+- **Delegare il bookkeeping all'agente** — crea, modifica, organizza pagine Wiki.js e tiene aggiornati i cross-reference al posto tuo
+- **Cercare per significato, non per parole chiave** — interrogare la wiki in linguaggio naturale con embedding vettoriali (all-MiniLM-L6-v2) su Qdrant
+- **Mantenere la knowledge base in salute** — esplorare backlink, trovare shortest path, rilevare pagine orfane e obsolete con un comando solo
+- **Ingerire documenti eterogenei in automatico** — carica PDF, DOCX, Markdown, immagini; l'agente estrae testo (OCR per scansioni), fa chunking e indicizza semanticamente
+- **Digitalizzare documenti scansionati** — OCR con Tesseract e preprocessing adattivo (deskew, denoise, threshold) per estrarre testo cercabile da immagini e PDF
 
 ---
 
@@ -35,6 +58,16 @@ Cursor IDE / Claude Desktop / MCP client
 | **Qdrant MCP** | `wikijs_qdrant_mcp` | 8001 | 8 | Gestione collezioni, upsert/ricerca vettoriale, scroll |
 | **Ingestion Pipeline** | `wikijs_ingestion` | 8002 | 7 | Detect → Estrai → Chunk → Embed → Upsert (PDF, DOCX, MD, immagini) |
 | **Tesseract MCP** | `wikijs_tesseract_mcp` | 8003 | 7 | OCR, estrazione HOCR, confidence scoring, preprocessing |
+
+---
+
+## Come si usa (in breve)
+
+1. **Avvia lo stack** — `docker compose up -d` (8 container, 7 a regime dopo ~60s)
+2. **Configura Cursor** — aggiungi i 4 server a `mcp.json` (tipo `sse` sulle porte 8000-8003)
+3. **Chiedi all'agente** — "Ingerisci questo PDF e crea una pagina wiki" oppure "Cerca nella wiki informazioni su X"
+
+Hai bisogno di un walkthrough passo-passo? Vai alla [Guida Utente → Primo flusso](userguide/04-primo-flusso.md).
 
 ---
 
@@ -129,6 +162,7 @@ Tutta la documentazione dettagliata si trova in **[`doc_v3/`](doc_v3/index.md)**
 
 | Sezione | Descrizione |
 |---------|-------------|
+| [Guida Utente](userguide/index.md) | Onboarding narrativo per umani, in italiano |
 | [Architettura](doc_v3/architecture/index.md) | Design dello stack, Qdrant, pattern multi-MCP |
 | [MCP Servers](doc_v3/mcp-servers/index.md) | Catalogo tool per server, configurazione |
 | [Features](doc_v3/features/index.md) | Catalogo funzionalità per priorità |
@@ -141,7 +175,7 @@ Tutta la documentazione dettagliata si trova in **[`doc_v3/`](doc_v3/index.md)**
 
 ### Per iniziare subito
 
-- **Operatori umani:** [Quickstart](doc_v3/guides/quickstart.md) → [Multi-MCP Setup](doc_v3/guides/multi-mcp-setup.md)
+- **Operatori umani:** [Guida Utente](userguide/index.md) → [Quickstart](doc_v3/guides/quickstart.md) → [Multi-MCP Setup](doc_v3/guides/multi-mcp-setup.md)
 - **LLM agent:** [System Overview](doc_v3/architecture/system-overview.md) → [Tool Catalog](doc_v3/reference/tool-catalog.md) → [Workflows](doc_v3/guides/llm-wiki-workflows.md)
 
 ---
