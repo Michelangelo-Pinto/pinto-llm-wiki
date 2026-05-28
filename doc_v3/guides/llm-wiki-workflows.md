@@ -64,7 +64,7 @@ Ingest external documents (PDF, DOCX, images, markdown) into Qdrant for semantic
 ```mermaid
 flowchart TD
     Ingest["1. ingest_document\nDetect type, OCR if needed, chunk, embed, upsert"]
-    Status["2. ingest_status\nVerify completion"]
+    Status["2. ingest_get_status\nVerify completion"]
     Search["3. qdrant_search\nFind ingested content"]
     WikiLink["4. wikijs_create_page\nCreate wiki page from extracted content"]
 
@@ -73,7 +73,7 @@ flowchart TD
 
 **Tool sequence:**
 1. `ingest_document(file_path="report.pdf")` -- full pipeline: detect -> extract -> chunk -> embed -> upsert
-2. `ingest_status(document_id=doc_id)` -- verify chunks created
+2. `ingest_get_status(document_id=doc_id)` -- verify chunks created
 3. `qdrant_search("documents", "topic")` -- find relevant chunks
 4. `wikijs_create_page(title="From: report.pdf", content=extracted_text)` -- create wiki page
 

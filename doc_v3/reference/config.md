@@ -28,7 +28,7 @@ Environment variables and Docker profiles for wiki-js-mcp v3.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `QDRANT_URL` | `http://qdrant-db:6334` | Qdrant REST endpoint (used by all MCP servers) |
+| `QDRANT_URL` | `http://qdrant-db:6334` | Qdrant REST endpoint (used by wiki-js-mcp, qdrant-mcp, ingestion-pipeline; NOT by tesseract-mcp) |
 | `QDRANT_COLLECTION_WIKI_PAGES` | `wiki_pages` | Collection for wiki page vectors |
 | `QDRANT_COLLECTION_DOCUMENTS` | `documents` | Collection for ingested documents |
 
@@ -38,8 +38,22 @@ Environment variables and Docker profiles for wiki-js-mcp v3.
 |----------|---------|-------------|
 | `WIKIJS_SITE_URL` | `http://localhost:3000` | Wiki.js site URL (auto-setup) |
 | `WIKIJS_API_URL` | `http://wiki:3000` | Wiki.js API URL (inside compose network) |
-| `WIKIJS_USERNAME` | `admin@example.com` | Admin username |
-| `WIKIJS_PASSWORD` | `admin123` | Admin password |
+| `WIKIJS_USERNAME` | *(empty)* | Admin username (set in `.env` for MCP authentication) |
+| `WIKIJS_PASSWORD` | *(empty)* | Admin password (set in `.env` for MCP authentication) |
+| `WIKIJS_API_KEY` | *(empty)* | Wiki.js API key (alternative to username/password) |
+| `WIKIJS_TOKEN` | *(empty)* | JWT token (auto-generated after authentication) |
+
+### MCP Server (internal)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MCP_HOST` | `0.0.0.0` | MCP server bind address |
+| `MCP_TRANSPORT` | `sse` | Transport protocol (SSE) |
+| `LOG_LEVEL` | `INFO` | Logging level |
+| `LOG_FILE` | `/logs/wikijs_mcp.log` | Log file path (wiki-js-mcp) |
+| `WIKIJS_MCP_DB` | `/data/wikijs_mappings.db` | SQLite database path (wiki-js-mcp) |
+| `INGESTION_DB` | `/data/ingestion.db` | SQLite database path (ingestion-pipeline) |
+| `TESSDATA_PREFIX` | `/usr/share/tesseract-ocr/5/tessdata` | Tesseract language data path |
 
 ### Test Runner (set in docker-compose service)
 

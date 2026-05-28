@@ -45,9 +45,13 @@ Single-page cheat sheet for LLM agents operating against wiki-js-mcp v3.
 
 **Spaces:** `list_spaces()` · `create_space(name, description?)`
 
+> **Nota:** I nomi MCP reali sono tutti prefissati `wikijs_*` (es. `wikijs_create_page`, `wikijs_smart_query`, `wikijs_wiki_health`).
+
 ### Qdrant MCP (8 tools, port 8001)
 
-`create_collection(name, vector_size=384, distance="Cosine")` · `list_collections()` · `collection_info(name)` · `delete_collection(name)` · `search(collection, query_text, limit=10, filters?, score_threshold?, with_payload?)` · `upsert_chunks(collection, chunks, wait?)` · `delete_by_filter(collection, filters)` · `scroll(collection, limit=50, offset?, filters?, with_payload?)`
+`create_collection(name, vector_size=384, distance="Cosine")` · `list_collections()` · `collection_info(name)` · `delete_collection(name)` · `search(collection, query_text, limit=10, filters?, score_threshold?, with_payload?)` · `upsert_chunks(collection, chunks)` · `delete_by_filter(collection, filter)` · `scroll(collection, limit=50, offset?, with_payload?, with_vector=False)`
+
+> **Nota:** I nomi MCP reali sono prefissati: `qdrant_create_collection`, `qdrant_list_collections`, `qdrant_collection_info`, `qdrant_delete_collection`, `qdrant_search`, `qdrant_upsert_chunks`, `qdrant_delete_by_filter`, `qdrant_scroll`.
 
 ### Ingestion Pipeline (7 tools, port 8002)
 
@@ -55,7 +59,7 @@ Single-page cheat sheet for LLM agents operating against wiki-js-mcp v3.
 
 ### Tesseract MCP (7 tools, port 8003)
 
-`ocr_get_languages()` · `ocr_detect_document_type(input_path)` · `ocr_extract_text(input_path, language="eng+ita", output_format?, page_range?, dpi=300, psm=3)` · `ocr_extract_hocr(input_path, language?, page_range?, dpi=300)` · `ocr_get_confidence(input_path, language?)` · `ocr_process_document(input_path, language?, auto_detect=True)` · `ocr_preprocess_and_extract(input_path, language?, threshold_method?, deskew?, denoise?)`
+`ocr_get_languages()` · `ocr_detect_document_type(input_path)` · `ocr_extract_text(input_path, language="eng+ita", output_format?, page_range?, dpi=300, psm=3)` · `ocr_extract_hocr(input_path, language?, page_range?)` · `ocr_get_confidence(input_path, language?)` · `ocr_process_document(input_path, language?, auto_detect_type=True, preprocess=True, dpi=300)` · `ocr_preprocess_and_extract(input_path, language?, preprocess_steps?)`
 
 ## Qdrant Collections
 
@@ -89,10 +93,10 @@ Model: `all-MiniLM-L6-v2` (384 dimensions, ~80 MB, pre-downloaded in images).
 ```json
 {
   "mcpServers": {
-    "wiki-js":   { "url": "http://localhost:8000/sse" },
-    "qdrant":    { "url": "http://localhost:8001/sse" },
-    "tesseract": { "url": "http://localhost:8003/sse" },
-    "ingestion": { "url": "http://localhost:8002/sse" }
+    "wikijs":     { "type": "sse", "url": "http://localhost:8000/sse" },
+    "qdrant":     { "type": "sse", "url": "http://localhost:8001/sse" },
+    "ingestion":  { "type": "sse", "url": "http://localhost:8002/sse" },
+    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" }
   }
 }
 ```

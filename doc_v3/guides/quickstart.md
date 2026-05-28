@@ -39,7 +39,7 @@ This starts 8 containers:
 - `wikijs_ingestion` — Ingestion Pipeline (:8002)
 - `wikijs_tesseract_mcp` — Tesseract OCR MCP (:8003)
 
-First startup takes 5-10 minutes (model download). Subsequent starts are fast.
+First startup takes 5-10 minutes (image build with pre-downloaded models). Subsequent starts are fast.
 
 ## 3. Verify
 
@@ -47,11 +47,11 @@ First startup takes 5-10 minutes (model download). Subsequent starts are fast.
 # Check all containers are healthy
 docker compose ps
 
-# Test MCP server endpoints
-curl http://localhost:8000/sse   # Wiki.js MCP
-curl http://localhost:8001/sse   # Qdrant MCP
-curl http://localhost:8002/sse   # Ingestion Pipeline
-curl http://localhost:8003/sse   # Tesseract MCP
+# Test MCP server endpoints (HTTP status check, non bloccante)
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/sse && echo " OK"  # Wiki.js MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8001/sse && echo " OK"  # Qdrant MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8002/sse && echo " OK"  # Ingestion Pipeline
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8003/sse && echo " OK"  # Tesseract MCP
 ```
 
 ## 4. Configure Cursor
@@ -61,10 +61,10 @@ Add to your Cursor `mcp.json`:
 ```json
 {
   "mcpServers": {
-    "wiki-js":     { "url": "http://localhost:8000/sse" },
-    "qdrant":      { "url": "http://localhost:8001/sse" },
-    "tesseract":   { "url": "http://localhost:8003/sse" },
-    "ingestion":   { "url": "http://localhost:8002/sse" }
+    "wikijs":     { "type": "sse", "url": "http://localhost:8000/sse" },
+    "qdrant":     { "type": "sse", "url": "http://localhost:8001/sse" },
+    "ingestion":  { "type": "sse", "url": "http://localhost:8002/sse" },
+    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" }
   }
 }
 ```
@@ -113,6 +113,8 @@ Copy a PDF into the shared volume and process it:
 docker compose cp /path/to/your/document.pdf ingestion-pipeline:/data/shared/doc.pdf
 
 # Ingest it via the ingestion pipeline
+# Nota: il POST diretto su /sse non e' il protocollo SSE standard.
+# Preferisci usare i tool via MCP client (Cursor/Claude).
 curl -X POST http://localhost:8002/sse \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"ingest_document","arguments":{"file_path":"/data/shared/doc.pdf"}},"id":1}'
@@ -129,7 +131,7 @@ Use Cursor (the agent) or curl to run a smart query:
 wikijs_smart_query("getting started")
 ```
 
-Or via curl:
+Or via curl (SSE JSON-RPC; prefer MCP client):
 
 ```bash
 curl -X POST http://localhost:8000/sse \

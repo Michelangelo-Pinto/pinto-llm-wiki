@@ -8,7 +8,7 @@ The agent needs the Docker stack running and Cursor configured:
 
 ```bash
 docker compose up -d
-docker compose ps    # Verify all 8 containers healthy
+docker compose ps    # Verify all 8 containers: 7 running + setup exited (0)
 ```
 
 Cursor `mcp.json` must include all 4 servers (see [Multi-MCP Setup](multi-mcp-setup.md)).
@@ -19,7 +19,7 @@ When you first open a session with the agent, give it context. The agent doesn't
 
 ```
 You are connected to wiki-js-mcp v3, a 4-server MCP ecosystem:
-- wiki-js (port 8000): ~43 tools for Wiki.js CRUD, search, graph, health
+- wikijs (port 8000): ~43 tools for Wiki.js CRUD, search, graph, health
 - qdrant (port 8001): 8 tools for Qdrant vector search
 - ingestion (port 8002): 7 tools for document processing (PDF, DOCX, images)
 - tesseract (port 8003): 7 tools for on-demand OCR

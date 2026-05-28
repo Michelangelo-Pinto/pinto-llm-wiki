@@ -1,0 +1,97 @@
+---
+description: Operare la knowledge base wiki-js-mcp: ingest, query, lint, document processing, OCR e regole operative
+alwaysApply: false
+---
+
+# Wiki Operator — Workflow operativi
+
+## Bootstrap di sessione
+
+1. `wikijs_connection_status` — verifica connettivita' Wiki.js e Qdrant
+2. `wikijs_repository_context` — contesto Git del repository
+3. Leggi `doc_v3/reference/quick-reference.md` e `doc_v3/guides/llm-wiki-workflows.md`
+
+## I 4 workflow
+
+### 1. Ingest (nuova conoscenza nella wiki)
+
+```
+wikijs_search_pages("topic") → wikijs_get_page_stats(candidates)
+→ wikijs_get_affected_pages(core_page_id)
+→ wikijs_bulk_get_pages(affected_ids)
+→ wikijs_update_page(id, content=updated)
+→ wikijs_append_to_page(log_id, "## [YYYY-MM-DD] ingest | Titolo")
+→ wikijs_update_page(index_id, content=updated_index)
+→ wikijs_rebuild_backlink_index()  (solo dopo bulk import)
+```
+
+### 2. Document Processing (file esterni → wiki)
+
+```
+ingest_document(file_path="/data/shared/doc.pdf") → document_id
+→ ingest_get_status(document_id) → verifica chunks creati
+→ ingest_search_chunks(query="topic", limit=5) → contenuto rilevante
+→ wikijs_create_page(title="Da: doc.pdf", content=chunks)
+→ wikijs_get_affected_pages(page_id) → impatto
+```
+
+### 3. Query (ricerca semantica + sintesi)
+
+```
+wikijs_smart_query("domanda in linguaggio naturale", limit=10)
+→ wikijs_get_page_stats(top_ids) → triage via metadata
+→ wikijs_bulk_get_pages(relevant_ids) → lettura contenuto
+→ Sintesi con citazioni
+→ wikijs_create_page(title="Query: ...", content=risposta)  (opzionale)
+```
+
+### 4. Lint (health check + fix)
+
+```
+wikijs_wiki_health() → dashboard issues (7 check)
+→ wikijs_bulk_get_pages(orphan_ids + stale_ids) → ispezione
+→ Decidi: link, update, o delete
+→ wikijs_update_page / wikijs_delete_page
+→ wikijs_append_to_page(log_id, "## [YYYY-MM-DD] lint | Sommario")
+```
+
+Usa `include_checks=["orphans", "stale"]` per scoping. Health completo (7 check) settimanalmente.
+
+### 5. OCR (documenti scansionati)
+
+```
+ocr_detect_document_type(input_path) → tipo documento
+→ ocr_extract_text(input_path, language="eng+ita")
+→ ocr_get_confidence(input_path) → se <70%
+→ ocr_preprocess_and_extract(input_path, preprocess_steps=["deskew","denoise","threshold"])
+→ wikijs_create_page(title="Contenuto Scannerizzato", content=extracted_text)
+```
+
+## Hard rules / Anti-pattern
+
+1. **Mai leggere one-by-one**: `wikijs_bulk_get_pages` per 2+ pagine (cap 50).
+2. **Triage prima di leggere**: `wikijs_get_page_stats` o `wikijs_wiki_health` per identificare pagine rilevanti.
+3. **Vettori wiki NON auto-indicizzati**: dopo create/update di pagine, esegui `qdrant_upsert_chunks` per la ricerca semantica.
+4. **File esterni → Qdrant prima**: `ingest_document` prima di `wikijs_smart_query`.
+5. **log.md append-only**: solo `wikijs_append_to_page`, mai read-modify-write.
+6. **Cancellazioni batch**: sempre `confirm_deletion=True`.
+7. **Mai inventare nomi tool**: i tool rimossi in v3 (`wikijs_vector_search`, `wikijs_rebuild_vector_index`) non esistono piu'. Nomi reali: `ingest_get_status` (non `ingest_status`), niente `ingest_cancel` o `list_ingested_documents`.
+
+## Convenzioni markdown / import-export
+
+- `editor: "markdown"` per tutte le pagine wiki
+- Link assoluti: `[testo](/path/completo)` — non relativi
+- Tag in frontmatter YAML, non `#tag` nel body
+- `* * *` per horizontal rules invece di `---` (conflitto frontmatter)
+- Gerarchia path-based: `parent/child`, max depth 5
+- `update_existing=True` nei re-import
+- Frontmatter export: `title`, `wiki_path`, `tags`, `created`, `updated`
+
+## Routing per porta
+
+- `wikijs_*` → porta **8000**
+- `qdrant_*` → porta **8001**
+- `ingest_*` → porta **8002**
+- `ocr_*` → porta **8003**
+
+Errori comuni: vedi [Error Catalog](../doc_v3/reference/error-catalog.md).

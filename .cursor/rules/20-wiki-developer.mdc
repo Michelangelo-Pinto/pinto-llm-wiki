@@ -1,0 +1,98 @@
+---
+description: Sviluppo codice wiki-js-mcp: pattern, test, docker, invarianti
+globs: mcp-servers/**/*.py, tests/**
+alwaysApply: false
+---
+
+# Wiki Developer — Convenzioni di sviluppo
+
+## Struttura per server
+
+### Wiki.js MCP (`mcp-servers/wiki-js-mcp/`)
+
+I tool sono organizzati per file:
+- `tools_pages.py` — 25 tool (CRUD, bulk, stats, smart query, import/export)
+- `tools_graph.py` — 3 tool (extract links, page graph, shortest path)
+- `tools_hierarchy.py` — 4 tool (repo structure, nested pages, children, doc hierarchy)
+- `tools_files.py` — 4 tool (link file, sync, overview, bulk update)
+- `tools_deletion.py` — 4 tool (delete page, batch delete, delete hierarchy, cleanup)
+- `tools_system.py` — 3 tool (connection status, repository context, manage collections)
+
+Registrazione: decorator `@mcp.tool()` su ogni funzione, import in `server.py::_register_tools`.
+
+### Qdrant MCP, Ingestion Pipeline, Tesseract MCP
+
+Registrazione esplicita in `server.py` via `mcp.tool()(func)`. Tool definiti in `tools.py`.
+
+## Pattern di un tool
+
+```python
+@mcp.tool()
+async def wikijs_tool_name(param1: str, param2: int = 10) -> str:
+    """Docstring: descrizione del tool."""
+    try:
+        await wikijs.authenticate()  # dove serve
+        # ... logica ...
+        result = await do_something()
+        return json.dumps(result)
+    except Exception as e:
+        logger.error(f"Tool failed: {e}")
+        return json.dumps({"error": str(e)})
+```
+
+Regole:
+- Sempre `async`
+- `await wikijs.authenticate()` per tool Wiki.js MCP che chiamano GraphQL
+- `try/except` con log dell'errore
+- `return json.dumps(...)` — MAI eccezioni non catturate
+- Errori: `{"error": "messaggio"}`
+
+## Checklist "aggiungere un tool"
+
+1. Definisci la funzione con il prefisso corretto (`wikijs_*`, `qdrant_*`, `ingest_*`, `ocr_*`)
+2. Registra il tool: `@mcp.tool()` nel file tools + import in `_register_tools` (wiki-js) o `mcp.tool()(func)` in `server.py` (altri)
+3. Aggiorna `doc_v3/reference/tool-catalog.md` (aggiungi riga nella tabella)
+4. Aggiorna il doc per-server in `doc_v3/mcp-servers/`
+5. Aggiorna `doc_v3/reference/quick-reference.md` (sezione compatta)
+6. Aggiungi test in `tests/`
+
+## Comandi test
+
+```bash
+# Fast (Qdrant only, ~2 min)
+docker compose --profile test run --rm test-runner pytest tests/ -v
+
+# Full-stack (richiede docker compose up -d)
+docker compose up -d
+docker compose --profile integration run --rm test-runner pytest tests/integration/stack/ tests/regression/ -v
+
+# Smoke (SSE transport)
+docker compose --profile integration run --rm test-runner pytest tests/smoke/ -v -m smoke
+
+# Unit (nessun container)
+PYTHONPATH="mcp-servers/qdrant-mcp/src:mcp-servers/ingestion-pipeline/src:mcp-servers/wiki-js-mcp/src:mcp-servers/tesseract-mcp/src" \
+pytest tests/unit/ -v -m unit
+```
+
+## Docker ops
+
+```bash
+docker compose up -d              # avvia stack
+docker compose ps                 # stato container
+docker compose logs <service>     # log
+docker compose build <service>    # rebuild immagine
+docker compose restart <service>  # riavvio
+docker compose down               # stop
+docker compose down -v            # stop + cancella volumi
+```
+
+I modelli embedding e Tesseract sono pre-scaricati in fase di build immagine, non a runtime.
+
+## Invarianti
+
+- **65 tool totali**: 43 wikijs + 8 qdrant + 7 ingest + 7 ocr
+- **Wiki.js page tools = 25** (non 26)
+- **Qdrant**: sempre `vector_size=384`, distanza **Cosine**, modello `all-MiniLM-L6-v2`
+- **Niente tool v2**: `wikijs_vector_search` e `wikijs_rebuild_vector_index` sono rimossi
+- **Contratto JSON**: `return json.dumps(...)`; errori `{"error": "..."}`
+- **SSE**: path `/sse` su tutti e 4 i server

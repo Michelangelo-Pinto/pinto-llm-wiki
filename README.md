@@ -60,12 +60,12 @@ docker compose up -d
 # 3. Attendi che Wiki.js completi l'inizializzazione (~60s)
 docker compose logs -f wiki
 
-# 4. Verifica che tutto sia attivo
-curl http://localhost:8000/sse   # Wiki.js MCP
-curl http://localhost:8001/sse   # Qdrant MCP
-curl http://localhost:8002/sse   # Ingestion Pipeline
-curl http://localhost:8003/sse   # Tesseract MCP
-curl http://localhost:3000       # Wiki.js web UI
+# 4. Verifica che tutto sia attivo (check HTTP status, non bloccante)
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/sse && echo " OK"  # Wiki.js MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8001/sse && echo " OK"  # Qdrant MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8002/sse && echo " OK"  # Ingestion Pipeline
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8003/sse && echo " OK"  # Tesseract MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 && echo " OK"       # Wiki.js web UI
 ```
 
 ### Configura Cursor IDE
@@ -75,10 +75,10 @@ Aggiungi a `mcp.json`:
 ```json
 {
   "mcpServers": {
-    "wiki-js":     { "url": "http://localhost:8000/sse" },
-    "qdrant":      { "url": "http://localhost:8001/sse" },
-    "ingestion":   { "url": "http://localhost:8002/sse" },
-    "tesseract":   { "url": "http://localhost:8003/sse" }
+    "wikijs":     { "type": "sse", "url": "http://localhost:8000/sse" },
+    "qdrant":     { "type": "sse", "url": "http://localhost:8001/sse" },
+    "ingestion":  { "type": "sse", "url": "http://localhost:8002/sse" },
+    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" }
   }
 }
 ```
@@ -89,7 +89,9 @@ Aggiungi a `mcp.json`:
 # Popola la wiki con dati di test
 docker compose exec wiki-js-mcp python3 scripts/seed_wiki_docs.py
 
-# Ingesta un documento
+# Ingesta un documento (via SSE JSON-RPC; GET /sse → endpoint → POST /messages?session_id=...)
+# Nota: il POST diretto su /sse non e' il protocollo SSE standard.
+# Preferisci usare i tool via MCP client (Cursor/Claude).
 curl -X POST http://localhost:8002/sse \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"ingest_document","arguments":{"file_path":"/data/shared/doc.pdf"}},"id":1}'

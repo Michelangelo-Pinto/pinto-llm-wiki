@@ -1,0 +1,76 @@
+---
+description: Memoria operativa: mantenere log.md e index.md, indici e stato di sessione della wiki
+alwaysApply: false
+---
+
+# Operational Memory — Protocollo di memoria
+
+La "memoria" della wiki vive in due pagine speciali:
+
+- **`log.md`** — registro cronologico append-only
+- **`index.md`** — catalogo pagine per categoria
+
+## `log.md` — Formato e uso
+
+Formato riga (append-only via `wikijs_append_to_page`):
+
+```
+## [YYYY-MM-DD] tipo | descrizione
+```
+
+Tipi: `ingest`, `query`, `lint`, `document-processing`, `ocr`, `export`, `import`, `fix`.
+
+Esempi:
+```
+## [2026-05-28] ingest | Aggiunta documentazione architettura microservizi
+## [2026-05-28] lint | Risolti 3 orfani, aggiornate 2 pagine stale
+## [2026-05-28] document-processing | Ingerito report.pdf (12 chunks)
+```
+
+**Mai** leggere-modificare-riscrivere log.md. Solo append.
+
+## `index.md` — Catalogo per categoria
+
+Aggiornato a ogni operazione di ingest o creazione massiva di pagine. Contiene elenco puntato di tutte le pagine raggruppate per categoria (spazio o percorso).
+
+## Quando aggiornare gli indici
+
+### Backlink
+
+I backlink sono auto-sincronizzati via hook su create/update/delete. Dopo import bulk o creazione massiva di pagine, esegui comunque:
+
+```
+wikijs_rebuild_backlink_index()
+```
+
+### Qdrant (vettori wiki)
+
+I vettori delle pagine wiki **NON** sono auto-indicizzati su create/update. Dopo creazione o aggiornamento di pagine che devono apparire nella ricerca semantica:
+
+```
+qdrant_upsert_chunks(collection="wiki_pages", chunks=[...])
+```
+
+Lo script `scripts/rebuild_vector_index.py` puo' essere usato per re-indicizzare l'intera wiki.
+
+## Checklist di chiusura operazione
+
+Al termine di ogni operazione significativa:
+
+1. **Append a `log.md`** — una riga per ogni azione completata
+2. **Se ingest/creazione pagine**: aggiorna `index.md` con le nuove pagine, per categoria
+3. **Se lint**: verifica con `wikijs_wiki_health()` che i fix siano applicati
+4. **Se import bulk**: esegui `wikijs_rebuild_backlink_index()`
+5. **Se create/update pagine per ricerca semantica**: esegui `qdrant_upsert_chunks`
+
+## Cosa registrare per tipo di operazione
+
+| Tipo | Cosa registrare in log.md |
+|------|--------------------------|
+| **ingest** | Topic, numero pagine create/aggiornate, pagine affected |
+| **query** | Domanda, pagine consultate, risposta sintetica (opzionale: crea pagina dedicata) |
+| **lint** | Health check eseguiti, issues trovati, fix applicati |
+| **document-processing** | File ingerito, chunks creati, pagina wiki creata, pagine affected |
+| **ocr** | File processato, lingua, confidence score, pagina wiki creata |
+| **export** | Directory export, numero pagine, scopo |
+| **import** | Directory import, `update_existing` flag, pagine create/aggiornate |

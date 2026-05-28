@@ -5,8 +5,8 @@ Document processing guide for the Ingestion Pipeline and Tesseract MCP server.
 ## Quick Start
 
 ```bash
-# Ingest a single document
-curl -X POST http://localhost:8002/sse -d '{"tool":"ingest_document","params":{"file_path":"/data/shared/report.pdf"}}'
+# Ingest a single document (via curl SSE JSON-RPC; prefer MCP client tools)
+curl -X POST http://localhost:8002/sse -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"ingest_document","arguments":{"file_path":"/data/shared/report.pdf"}},"id":1}'
 
 # Or via the MCP tool in Cursor/Claude:
 ingest_document(file_path="/path/to/report.pdf")
@@ -80,16 +80,16 @@ For ad-hoc OCR needs, use the Tesseract MCP server directly:
 
 ```python
 # Extract text from an image
-extract_text(file_path="/data/scan.png", language="eng+ita")
+ocr_extract_text(file_path="/data/scan.png", language="eng+ita")
 
 # Detect document type
-detect_type(file_path="/data/report.pdf")
+ocr_detect_document_type(file_path="/data/report.pdf")
 
 # Get per-word confidence scores
-confidence(file_path="/data/scan.png")
+ocr_get_confidence(file_path="/data/scan.png")
 
 # Preprocess and extract (grayscale, deskew, denoise, OCR)
-preprocess_and_extract(file_path="/data/low_quality.png")
+ocr_preprocess_and_extract(file_path="/data/low_quality.png")
 ```
 
 The Tesseract MCP server is for agent-driven OCR. The Ingestion Pipeline uses pytesseract in-process for batch performance.
@@ -103,13 +103,10 @@ For bulk document ingestion:
 ingest_directory(dir_path="/data/documents/")
 
 # Check progress
-ingest_status()
+ingest_get_status()
 
 # List all ingested documents
-list_ingested_documents()
-
-# Cancel an in-progress ingestion
-ingest_cancel(document_id="uuid")
+ingest_list_documents()
 ```
 
 ## Searching Ingested Content

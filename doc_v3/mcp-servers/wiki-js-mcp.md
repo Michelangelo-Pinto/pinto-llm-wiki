@@ -19,7 +19,7 @@ wiki-js-mcp:
 
 ## Tool Catalog
 
-### Page Management (26 tools)
+### Page Management (25 tools)
 
 | Tool | Purpose |
 |------|---------|

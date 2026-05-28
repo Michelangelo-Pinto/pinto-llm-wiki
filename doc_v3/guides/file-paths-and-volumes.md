@@ -6,7 +6,7 @@ Where files go for ingestion, where export output lands, and how to move files b
 
 | Volume Name | Mount Inside Container | Purpose | Container | Access |
 |-------------|----------------------|---------|-----------|--------|
-| `shared_data` | `/data/shared` | Files to ingest (PDF, DOCX, images, MD) and exported `.md` files | `ingestion-pipeline`, `tesseract-mcp`, `qdrant-mcp` | Read-only (`:ro`) |
+| `shared_data` | `/data/shared` | Files to ingest (PDF, DOCX, images, MD) and exported `.md` files | `ingestion-pipeline`, `tesseract-mcp` | Read-only (`:ro`) |
 | `ingestion_data` | `/data` | SQLite database `ingestion.db` | `ingestion-pipeline` | Read-write |
 | `mcp_data` | `/data` | SQLite database `wikijs_mappings.db` | `wiki-js-mcp` | Read-write |
 | `mcp_logs` | `/logs` | MCP server logs | `wiki-js-mcp` | Read-write |
@@ -36,7 +36,7 @@ Then ingest:
 # From the LLM agent (Cursor):
 ingest_document(file_path="/data/shared/report.pdf")
 
-# Or via curl:
+# Or via curl (SSE JSON-RPC protocol; prefer MCP client tools):
 curl -X POST http://localhost:8002/sse \
   -d '{"tool":"ingest_document","params":{"file_path":"/data/shared/report.pdf"}}'
 ```

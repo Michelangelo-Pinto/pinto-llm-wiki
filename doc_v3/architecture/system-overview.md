@@ -69,7 +69,7 @@ sequenceDiagram
 | `mcp_logs` | `/logs` | MCP server logs |
 | `qdrant_data` | `/qdrant/storage` | Qdrant vector data |
 | `qdrant_snapshots` | `/qdrant/snapshots` | Qdrant backup snapshots |
-| `shared_data` | `/data/shared` | Shared files (read-only for MCP servers) |
+| `shared_data` | `/data/shared` | Shared files (read-only for ingestion/tesseract, NOT mounted on wiki-js-mcp) |
 | `ingestion_data` | `/data` | Ingestion SQLite database (`ingestion.db`) |
 
 ## Network
@@ -83,10 +83,10 @@ Each of the 4 MCP servers uses **SSE** (Server-Sent Events) via FastMCP:
 ```json
 {
   "mcpServers": {
-    "wiki-js":     { "url": "http://localhost:8000/sse" },
-    "qdrant":      { "url": "http://localhost:8001/sse" },
-    "tesseract":   { "url": "http://localhost:8003/sse" },
-    "ingestion":   { "url": "http://localhost:8002/sse" }
+    "wikijs":     { "type": "sse", "url": "http://localhost:8000/sse" },
+    "qdrant":     { "type": "sse", "url": "http://localhost:8001/sse" },
+    "ingestion":  { "type": "sse", "url": "http://localhost:8002/sse" },
+    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" }
   }
 }
 ```

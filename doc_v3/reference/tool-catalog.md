@@ -6,7 +6,7 @@ Complete reference for all **~65 MCP tools** across 4 servers. Wiki.js MCP tools
 
 Source: [`mcp-servers/wiki-js-mcp/src/wiki_mcp_server/`](../../mcp-servers/wiki-js-mcp/src/wiki_mcp_server/)
 
-### Page Management (26 tools)
+### Page Management (25 tools)
 
 [`tools_pages.py`](../../mcp-servers/wiki-js-mcp/src/wiki_mcp_server/tools_pages.py)
 
@@ -106,9 +106,9 @@ Source: [`qdrant_mcp/tools.py`](../../mcp-servers/qdrant-mcp/src/qdrant_mcp/tool
 | 3 | `qdrant_collection_info` | `(name)` |
 | 4 | `qdrant_delete_collection` | `(name)` |
 | 5 | `qdrant_search` | `(collection, query_text, limit?, filters?, score_threshold?, with_payload?)` |
-| 6 | `qdrant_upsert_chunks` | `(collection, chunks, wait?)` |
-| 7 | `qdrant_delete_by_filter` | `(collection, filters)` |
-| 8 | `qdrant_scroll` | `(collection, limit?, offset?, filters?, with_payload?)` |
+| 6 | `qdrant_upsert_chunks` | `(collection, chunks)` |
+| 7 | `qdrant_delete_by_filter` | `(collection, filter)` |
+| 8 | `qdrant_scroll` | `(collection, limit?, offset?, with_payload?, with_vector=False)` |
 
 Container config: [qdrant-mcp.md](../mcp-servers/qdrant-mcp.md)
 
@@ -125,7 +125,7 @@ Source: [`ingestion_pipeline/tools.py`](../../mcp-servers/ingestion-pipeline/src
 | 3 | `ingest_directory` | `(dir_path, collection?, recursive?, file_patterns?)` |
 | 4 | `ingest_get_status` | `(document_id?)` |
 | 5 | `ingest_delete_document` | `(document_id, collection?)` |
-| 6 | `ingest_search_chunks` | `(query, collection?, limit?, score_threshold?)` |
+| 6 | `ingest_search_chunks` | `(query, collection?, limit=10, filters?)` |
 | 7 | `ingest_list_documents` | — |
 
 Container config: [ingestion-pipeline-mcp.md](../mcp-servers/ingestion-pipeline-mcp.md)
@@ -141,10 +141,10 @@ Source: [`tesseract_mcp/tools.py`](../../mcp-servers/tesseract-mcp/src/tesseract
 | 1 | `ocr_get_languages` | — |
 | 2 | `ocr_detect_document_type` | `(input_path)` |
 | 3 | `ocr_extract_text` | `(input_path, language?, output_format?, page_range?, dpi?, psm?)` |
-| 4 | `ocr_extract_hocr` | `(input_path, language?, page_range?, dpi?)` |
+| 4 | `ocr_extract_hocr` | `(input_path, language?, page_range?)` |
 | 5 | `ocr_get_confidence` | `(input_path, language?)` |
-| 6 | `ocr_process_document` | `(input_path, language?, auto_detect?)` |
-| 7 | `ocr_preprocess_and_extract` | `(input_path, language?, threshold_method?, deskew?, denoise?)` |
+| 6 | `ocr_process_document` | `(input_path, language?, auto_detect_type=True, preprocess=True, dpi=300)` |
+| 7 | `ocr_preprocess_and_extract` | `(input_path, language?, preprocess_steps?)` |
 
 Container config: [tesseract-mcp.md](../mcp-servers/tesseract-mcp.md)
 

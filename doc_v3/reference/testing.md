@@ -138,7 +138,7 @@ docker compose --profile test run --rm test-runner pytest tests/integration/qdra
 - DOCX with embedded images
 - Markdown and plain text ingestion
 - Image ingestion with OCR
-- Background processing and `ingest_status` polling
+- Background processing and `ingest_get_status` polling
 
 **Test data:** Pre-generated fixtures in `tests/test-data/`. See [tests/test-data/README.md](../../tests/test-data/README.md).
 

@@ -8,7 +8,7 @@ Guide for migrating from wiki-js-mcp v2 (monolithic MCP server) to v3 (multi-MCP
 2. Update Cursor `mcp.json` to add 4 MCP servers (see [Cursor Configuration](#cursor-configuration))
 3. `docker compose pull` (or `docker compose build` if building locally)
 4. `docker compose up -d`
-5. Verify: `docker compose ps` shows 8 healthy containers, `curl http://localhost:8000/sse` (and 8001-8003)
+5. Verify: `docker compose ps` shows 8 containers (7 running, setup exited with code 0), `curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/sse` (expect 200)
 
 ```mermaid
 flowchart TD
@@ -149,10 +149,10 @@ The `--profile test` flag is new in v3. It runs the test-runner with only `qdran
 ```json
 {
   "mcpServers": {
-    "wiki-js":     { "url": "http://localhost:8000/sse" },
-    "qdrant":      { "url": "http://localhost:8001/sse" },
-    "tesseract":   { "url": "http://localhost:8003/sse" },
-    "ingestion":   { "url": "http://localhost:8002/sse" }
+    "wikijs":     { "type": "sse", "url": "http://localhost:8000/sse" },
+    "qdrant":     { "type": "sse", "url": "http://localhost:8001/sse" },
+    "ingestion":  { "type": "sse", "url": "http://localhost:8002/sse" },
+    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" }
   }
 }
 ```
@@ -211,18 +211,19 @@ After migration, confirm everything is working:
 docker compose ps
 ```
 
-Expected: 8 services, all `healthy` or `running`. The `setup` container should show `exited (0)`.
+Expected: 8 containers, 7 running (`healthy` or `running`). The `setup` container should show `exited (0)`.
 
 ### 2. SSE endpoints responding
 
 ```bash
-curl http://localhost:8000/sse  # Wiki.js MCP
-curl http://localhost:8001/sse  # Qdrant MCP
-curl http://localhost:8002/sse  # Ingestion Pipeline
-curl http://localhost:8003/sse  # Tesseract MCP
+# HTTP status check (non bloccante)
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/sse && echo " OK"  # Wiki.js MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8001/sse && echo " OK"  # Qdrant MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8002/sse && echo " OK"  # Ingestion Pipeline
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8003/sse && echo " OK"  # Tesseract MCP
 ```
 
-Each should return SSE event stream headers.
+Each should return HTTP 200 (SSE endpoint available). Nota: `curl` diretto su `/sse` senza `-s` si blocca (stream SSE long-lived); usare `-s -o /dev/null -w '%{http_code}'` per un check non bloccante. Il protocollo MCP reale e' GET `/sse` → evento `endpoint` → POST JSON-RPC su `/messages?session_id=...`.
 
 ### 3. Wiki.js connectivity
 

@@ -9,17 +9,21 @@ Add to your Cursor `mcp.json`:
 ```json
 {
   "mcpServers": {
-    "wiki-js": {
+    "wikijs": {
+      "type": "sse",
       "url": "http://localhost:8000/sse"
     },
     "qdrant": {
+      "type": "sse",
       "url": "http://localhost:8001/sse"
     },
-    "tesseract": {
-      "url": "http://localhost:8003/sse"
-    },
     "ingestion": {
+      "type": "sse",
       "url": "http://localhost:8002/sse"
+    },
+    "tesseract": {
+      "type": "sse",
+      "url": "http://localhost:8003/sse"
     }
   }
 }
@@ -39,11 +43,11 @@ docker compose up -d
 # Check all containers are healthy
 docker compose ps
 
-# Test MCP server SSE endpoints
-curl http://localhost:8000/sse   # Wiki.js MCP (~43 tools)
-curl http://localhost:8001/sse   # Qdrant MCP (8 tools)
-curl http://localhost:8002/sse   # Ingestion Pipeline (7 tools)
-curl http://localhost:8003/sse   # Tesseract MCP (7 tools)
+# Test MCP server SSE endpoints (HTTP status check)
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/sse && echo " OK"  # Wiki.js MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8001/sse && echo " OK"  # Qdrant MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8002/sse && echo " OK"  # Ingestion Pipeline
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8003/sse && echo " OK"  # Tesseract MCP
 ```
 
 ## Tool Discovery

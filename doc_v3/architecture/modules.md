@@ -12,7 +12,7 @@ mcp-servers/wiki-js-mcp/             # Wiki.js MCP (Python)
     ├── config.py                    # Pydantic Settings (env vars + Qdrant URL)
     ├── db.py                        # SQLAlchemy models (FileMapping, BacklinkIndex)
     ├── utils.py                     # AST, hash, repo helpers
-    ├── tools_pages.py               # Page management (~26 tools)
+    ├── tools_pages.py               # Page management (~25 tools)
     ├── tools_graph.py               # Link graph (3 tools)
     ├── tools_hierarchy.py           # Hierarchy (4 tools)
     ├── tools_files.py               # File integration (4 tools)
@@ -129,7 +129,7 @@ flowchart TB
 
 **`utils.py`** — Utilities: `get_file_hash()` (SHA-256), `extract_code_structure()` (AST parsing for Python classes/functions/imports), `find_repository_root()` (Git root detection), markdown and HTML conversion helpers.
 
-**`tools_pages.py`** — Page management (26 tools). The largest module. Contains CRUD, search, bulk, backlinks, stats, append, tags, smart_query, recent changes, wiki health, wiki stats, affected pages, import/export. Helper functions: `_extract_links`, `_resolve_paths_to_ids`, `_sync_backlinks_for_page`.
+**`tools_pages.py`** — Page management (25 tools). The largest module. Contains CRUD, search, bulk, backlinks, stats, append, tags, smart_query, recent changes, wiki health, wiki stats, affected pages, import/export. Helper functions: `_extract_links`, `_resolve_paths_to_ids`, `_sync_backlinks_for_page`.
 
 **`tools_graph.py`** — Link graph (3 tools). `wikijs_extract_page_links` (classifies internal/external links, flags broken), `wikijs_get_page_graph` (BFS traversal with cycle detection, max_nodes cap), `wikijs_find_shortest_path` (bidirectional BFS between two pages).
 
