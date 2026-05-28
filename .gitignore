@@ -106,4 +106,7 @@ ingestion_data/
 shared_data/
 
 # Resources
-resources/ 
+resources/
+
+# Agent temporary files
+agent_tmp/

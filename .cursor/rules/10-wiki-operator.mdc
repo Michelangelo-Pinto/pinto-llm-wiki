@@ -7,9 +7,10 @@ alwaysApply: false
 
 ## Bootstrap di sessione
 
-1. `wikijs_connection_status` — verifica connettivita' Wiki.js e Qdrant
-2. `wikijs_repository_context` — contesto Git del repository
-3. Leggi `doc_v3/reference/quick-reference.md` e `doc_v3/guides/llm-wiki-workflows.md`
+1. **Crea una sessione in agent_tmp/** — vedi `.cursor/rules/25-agent-logging.mdc` per la struttura e il formato. Determina il progressivo da `agent_tmp/index.md`, crea `sessions/YYYY-MM-DD-NNN/` con `log.md` e `context.md`.
+2. `wikijs_connection_status` — verifica connettivita' Wiki.js e Qdrant. Registra esito in `log.md`.
+3. `wikijs_repository_context` — contesto Git del repository. Registra in `context.md`.
+4. Leggi `doc_v3/reference/quick-reference.md` e `doc_v3/guides/llm-wiki-workflows.md`
 
 ## I 4 workflow
 
@@ -95,3 +96,11 @@ ocr_detect_document_type(input_path) → tipo documento
 - `ocr_*` → porta **8003**
 
 Errori comuni: vedi [Error Catalog](../doc_v3/reference/error-catalog.md).
+
+## Logging operativo
+
+Al termine di ogni workflow, chiudi la sessione in `agent_tmp/`:
+- Aggiorna `log.md` con l'esito finale (success/partial/failure)
+- Aggiorna `context.md` con le pagine toccate
+- Aggiorna `agent_tmp/index.md` con il riepilogo della sessione
+- Se l'operazione ha modificato la KB, registra anche nel wiki `log.md` (append-only)

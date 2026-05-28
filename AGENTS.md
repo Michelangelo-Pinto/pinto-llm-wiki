@@ -30,7 +30,7 @@ plans/                # Storico pianificazione (plans/llm-wiki/AGENTS.md = v2, o
 
 ## Scegli il tuo ruolo
 
-- **Operatore** della knowledge base → leggi `.cursor/rules/10-wiki-operator.mdc` + `.cursor/rules/30-operational-memory.mdc`
+- **Operatore** della knowledge base → leggi `.cursor/rules/10-wiki-operator.mdc` + `.cursor/rules/25-agent-logging.mdc` + `.cursor/rules/30-operational-memory.mdc`
 - **Sviluppatore** del codice MCP → leggi `.cursor/rules/20-wiki-developer.mdc`
 - La regola `.cursor/rules/00-project-overview.mdc` e' sempre attiva con i fatti essenziali.
 

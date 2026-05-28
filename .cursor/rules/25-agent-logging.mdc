@@ -1,0 +1,136 @@
+---
+description: Logging operativo dell'agente in agent_tmp/: tracciamento step-by-step, sessioni, artifact temporanei. Attivare per ogni operazione complessa.
+alwaysApply: false
+---
+
+# Agent Logging — Diario operativo in agent_tmp/
+
+Ogni operazione complessa dell'agente (ingest, lint, document processing, query multi-step, OCR) deve essere tracciata in `agent_tmp/`. Questo diario e' **separato** dal wiki `log.md` (che e' la memoria della KB per gli umani) e serve a rendere l'esecuzione dell'agente **ispezionabile e riproducibile** da un altro agente.
+
+## Struttura di agent_tmp/
+
+```
+agent_tmp/
+  index.md                          # Indice di tutte le sessioni
+  sessions/
+    YYYY-MM-DD-NNN/
+      log.md                        # Log step-by-step della sessione
+      context.md                    # Contesto raccolto (repo state, health, etc.)
+      artifacts/                    # File temporanei prodotti nella sessione
+```
+
+## Quando creare una sessione
+
+Crea una nuova sessione (`agent_tmp/sessions/YYYY-MM-DD-NNN/`) all'inizio di **ogni operazione complessa** che richiede piu' di 2 chiamate tool. Il suffisso `-NNN` e' un progressivo a 3 cifre (001, 002, ...) per la giornata.
+
+Prima di creare la sessione, controlla `agent_tmp/index.md` per determinare il prossimo progressivo disponibile.
+
+**Operazioni che richiedono sempre una sessione:**
+- Ingest di uno o piu' documenti
+- Lint / health check con fix
+- Document processing end-to-end
+- OCR con preprocessing
+- Qualsiasi operazione multi-step (>5 tool calls)
+- Qualsiasi operazione richiesta esplicitamente dall'utente
+
+**Operazioni che NON richiedono sessione:**
+- Query semplici (1-2 tool calls)
+- Lettura di una singola pagina
+- Health check senza fix
+
+## Formato del log (log.md)
+
+Ogni riga del log segue questo formato esatto:
+
+```
+[HH:MM:SS] [TAG] | descrizione
+```
+
+Tag disponibili:
+- `[OK]` — operazione completata con successo
+- `[ERR]` — errore (deve includere tool, parametri e messaggio di errore)
+- `[WARN]` — avviso o anomalia non bloccante
+- `[INFO]` — informazione di contesto, decisione presa, obiettivo
+
+### Cosa loggare — obbligatorio
+
+1. **Inizio sessione**: `[INFO]` con obiettivo della sessione (es. "Inizio ingest di 3 PDF da /data/shared/")
+2. **Ogni chiamata tool MCP**: `[INFO]` prima della chiamata (tool + parametri essenziali), `[OK]` o `[ERR]` dopo
+3. **Ogni decisione**: `[INFO]` quando l'agente prende una decisione (es. scelta di creare/aggiornare/eliminare)
+4. **Ogni fallimento**: `[ERR]` con tool name, parametri chiave, messaggio di errore esatto
+5. **Ogni successo significativo**: `[OK]` con riepilogo di cosa e' stato fatto
+6. **Fine sessione**: `[INFO]` con riepilogo finale ed esito complessivo (success/partial/failure)
+
+### Esempio di log
+
+```
+[14:05:01] [INFO] | Inizio sessione: ingest di report-2024.pdf e creazione pagina wiki
+[14:05:02] [INFO] | Chiamo ingest_document(file_path="/data/shared/report-2024.pdf")
+[14:05:15] [OK] | ingest_document completato: document_id=abc123, 8 chunks creati
+[14:05:16] [INFO] | Chiamo ingest_get_status(document_id="abc123")
+[14:05:17] [OK] | ingest_get_status: stato=completed, chunks=8
+[14:05:18] [INFO] | Chiamo wikijs_create_page(title="Report 2024", content=...)
+[14:05:20] [OK] | wikijs_create_page: pagina creata, id=42, path=/report-2024
+[14:05:21] [INFO] | Aggiorno index.md nella wiki con la nuova pagina
+[14:05:22] [OK] | Sessione completata con successo. 1 documento ingerito, 1 pagina creata.
+```
+
+### Esempio con errore
+
+```
+[14:10:01] [INFO] | Inizio sessione: query semantica su "architettura microservizi"
+[14:10:02] [INFO] | Chiamo wikijs_smart_query(query="architettura microservizi", limit=10)
+[14:10:04] [ERR] | wikijs_smart_query fallita: Qdrant connection refused su porta 8001. Verificare docker compose ps.
+[14:10:05] [INFO] | Sessione interrotta: Qdrant non raggiungibile. L'utente deve avviare lo stack.
+```
+
+## context.md
+
+All'inizio della sessione, scrivi in `context.md` uno snapshot del contesto:
+
+```markdown
+# Contesto sessione YYYY-MM-DD-NNN
+
+- **Stack Docker**: container in esecuzione (da docker compose ps o wikijs_connection_status)
+- **Branch Git**: branch corrente, ultimi commit
+- **Stato Wiki.js**: connesso (si/no), numero pagine
+- **Stato Qdrant**: connesso (si/no), collezioni attive
+- **Pagine toccate**: elenco ID pagine modificate (da aggiornare durante la sessione)
+```
+
+Questo file serve a riprendere una sessione interrotta o a far capire a un altro agente lo stato di partenza.
+
+## artifacts/
+
+Salva qui qualsiasi file temporaneo prodotto durante la sessione: estratti markdown, riepiloghi, output intermedi, file di configurazione generati. Non committare mai questa cartella (e' in `.gitignore`).
+
+## Checklist di chiusura sessione
+
+Prima di considerare conclusa una sessione:
+
+1. **log.md completo**: tutte le chiamate tool e gli esiti sono registrati
+2. **context.md aggiornato**: pagine toccate, esito finale
+3. **index.md aggiornato**: aggiungi una riga in `agent_tmp/index.md` con data, obiettivo, esito, path sessione
+4. **Wiki log.md aggiornato**: se l'operazione impatta la KB, registra anche nel wiki `log.md` (append-only)
+
+## Formato di agent_tmp/index.md
+
+Tabella compatta:
+
+```markdown
+# Sessioni operative
+
+| Data | Ora | Obiettivo | Esito | Path |
+|------|-----|-----------|-------|------|
+| 2026-05-29 | 14:05 | Ingest report-2024.pdf | success | [sessione](sessions/2026-05-29-001/) |
+| 2026-05-29 | 14:10 | Query architettura | failure | [sessione](sessions/2026-05-29-002/) |
+```
+
+## Coesistenza con il wiki log.md
+
+| Cosa | Dove | Per chi |
+|------|------|---------|
+| **Wiki log.md** (pagina wiki, append-only) | Wiki.js, via `wikijs_append_to_page` | Utenti umani della KB: cosa e' cambiato nella conoscenza |
+| **agent_tmp/** (filesystem locale) | `agent_tmp/sessions/...` | Agenti LLM: traccia operativa dettagliata, riproducibile |
+
+Il wiki log.md e' obbligatorio per ogni modifica alla KB. `agent_tmp/` e' obbligatorio per ogni operazione complessa, anche se non modifica la KB (es. query fallita, lint senza fix).

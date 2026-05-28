@@ -5,10 +5,14 @@ alwaysApply: false
 
 # Operational Memory — Protocollo di memoria
 
-La "memoria" della wiki vive in due pagine speciali:
+La "memoria" del sistema vive su due livelli distinti:
 
-- **`log.md`** — registro cronologico append-only
-- **`index.md`** — catalogo pagine per categoria
+- **Wiki `log.md` e `index.md`** — memoria della KB per gli utenti umani: cosa e' cambiato nella conoscenza
+- **`agent_tmp/`** — diario operativo dell'agente: traccia dettagliata e riproducibile di ogni esecuzione (vedi `.cursor/rules/25-agent-logging.mdc`)
+
+Questa rule riguarda il primo livello (wiki). Per il logging operativo su filesystem, vedi `25-agent-logging.mdc`.
+
+## `log.md` e `index.md` — Pagine wiki
 
 ## `log.md` — Formato e uso
 
