@@ -63,7 +63,7 @@ def main():
     logger.info("Registered tools: create_collection, list_collections, collection_info, "
                 "delete_collection, search, upsert_chunks, delete_by_filter, scroll")
 
-    mcp.run(transport="sse")
+    mcp.run(transport="sse", host=host, port=port)
 
 
 if __name__ == "__main__":

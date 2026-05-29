@@ -5,6 +5,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx libglib2.0-0 \
     curl \
     && rm -rf /var/lib/apt/lists/*
+# Install CPU-only PyTorch first to avoid pulling CUDA/nvidia wheels from PyPI
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir \
     fastmcp>=3.0.0 \
     qdrant-client>=1.17.0 \
@@ -23,6 +25,7 @@ WORKDIR /app
 COPY src/ /app/src/
 ENV MCP_HOST=0.0.0.0
 ENV MCP_PORT=8002
+ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 USER mcp
 CMD ["python", "-m", "ingestion_pipeline.server"]

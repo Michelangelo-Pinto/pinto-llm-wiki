@@ -52,7 +52,7 @@ def main():
     logger.info("Available languages: %s", pytesseract.get_languages())
     logger.info("Registered tools: extract_text, detect_document_type, extract_hocr, "
                 "get_confidence, get_languages, process_document, preprocess_and_extract")
-    mcp.run(transport="sse")
+    mcp.run(transport="sse", host=host, port=port)
 
 
 if __name__ == "__main__":

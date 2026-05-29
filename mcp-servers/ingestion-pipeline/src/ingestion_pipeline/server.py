@@ -39,7 +39,7 @@ def main():
     port = int(os.environ.get("MCP_PORT", "8002"))
     logger.info("Starting Ingestion Pipeline MCP server on %s:%s", host, port)
     logger.info("Qdrant URL: %s", os.environ.get("QDRANT_URL", "http://qdrant-db:6334"))
-    mcp.run(transport="sse")
+    mcp.run(transport="sse", host=host, port=port)
 
 
 if __name__ == "__main__":

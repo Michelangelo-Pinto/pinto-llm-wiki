@@ -11,11 +11,12 @@ RUN pip install --no-cache-dir \
     PyMuPDF>=1.24.0 \
     Pillow>=10.0.0 \
     opencv-python-headless>=4.9.0
-RUN useradd -m -u 1000 mcp && chown -R mcp:mcp /app /data
+RUN useradd -m -u 1000 mcp && mkdir -p /data /app && chown -R mcp:mcp /data /app
 WORKDIR /app
 COPY src/ /app/src/
 ENV MCP_HOST=0.0.0.0
 ENV MCP_PORT=8003
+ENV PYTHONPATH=/app/src
 ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 ENV PYTHONUNBUFFERED=1
 USER mcp
