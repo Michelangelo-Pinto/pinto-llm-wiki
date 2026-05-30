@@ -1,11 +1,11 @@
 ---
-description: Web ingestion tramite browser MCP: navigare, estrarre contenuti web (pagine, articoli, documenti) e ingerirli nella wiki con attribuzione della fonte (URL, data, nome). Supporta Playwright DevTools MCP e Cursor browser integrato.
+description: Web ingestion tramite browser MCP: navigare, estrarre contenuti web (pagine, articoli, documenti) e salvarli nella knowledge base con attribuzione della fonte (URL, data, nome). Supporta Playwright DevTools MCP e Cursor browser integrato.
 alwaysApply: false
 ---
 
-# Web Ingestion — Browser MCP + Wiki
+# Web Ingestion — Browser MCP + Knowledge Base v4
 
-L'agente puo' usare un browser MCP per navigare sul web, estrarre contenuti e portarli nella knowledge base. Ogni contenuto ingerito deve riportare la **fonte** (URL, nome file, data acquisizione) sia nel frontmatter della pagina wiki che nel `log.md`.
+L'agente puo' usare un browser MCP per navigare sul web, estrarre contenuti e portarli nella knowledge base. Ogni contenuto ingerito deve riportare la **fonte** (URL, nome file, data acquisizione) sia nel frontmatter del file MD che nel `knowledge/log.md`.
 
 ## Rilevazione del browser disponibile
 
@@ -27,15 +27,17 @@ Per contenuti prevalentemente testuali senza necessita' di OCR/chunking pesante:
    - Playwright: `content_get-as-text` (testo visibile) o `content_get-as-html` (HTML sorgente)
    - Cursor: `browser_snapshot` (snapshot accessibilita') + `browser_cdp` con `Runtime.evaluate` per estrarre `document.body.innerText`
 3. **Formatta** in markdown pulito (titolo, metadati, corpo). Rimuovi header/footer/sidebar. Mantieni la struttura (intestazioni, paragrafi, liste).
-4. **Crea pagina wiki** con `wikijs_create_page`. Il contenuto DEVE includere il frontmatter con attribuzione fonte (vedi sezione "Attribuzione della fonte").
-5. **Registra** in wiki `log.md` e in `agent_tmp/`.
+4. **Crea file MD** in `knowledge/ingested/YYYY-MM-DD-slug/page.md`. Il contenuto DEVE includere il frontmatter con attribuzione fonte (vedi sezione "Attribuzione della fonte").
+5. **Aggiorna** `knowledge/ingested/index.md` con la nuova entry.
+6. **Registra** in `knowledge/log.md` e in `agent_tmp/`.
 
 ```
 [INFO] | Navigo su https://example.com/article
 [OK] | Pagina caricata, estratto testo (~3500 caratteri)
-[INFO] | Creo pagina wiki: "Titolo articolo"
-[OK] | Pagina wiki creata, id=42, source_url=https://example.com/article
-[INFO] | Registrato in log.md: web | https://example.com/article — Titolo articolo
+[INFO] | Scrivo file: knowledge/ingested/2026-05-30-example-article/page.md
+[OK] | File MD creato, source_url=https://example.com/article
+[INFO] | Aggiorno knowledge/ingested/index.md
+[INFO] | Registrato in knowledge/log.md: web | https://example.com/article — Titolo articolo
 ```
 
 ### Percorso B — Pipeline (pagine complesse, con molte immagini, PDF dal web)
@@ -51,23 +53,27 @@ Per contenuti ricchi di immagini, PDF, o quando serve l'indicizzazione semantica
      cp agent_tmp/artifacts/nome-file.md /data/shared/
    ```
 4. Una volta copiato: **`ingest_document(file_path="/data/shared/nome-file.md")`** → pipeline completa (detect → extract → chunk → embed → upsert su Qdrant).
-5. **Crea/aggiorna pagina wiki** con `wikijs_create_page`, includendo fonte nel frontmatter.
-6. **Registra** in wiki `log.md` e `agent_tmp/`.
+5. **Crea file MD** in `knowledge/ingested/YYYY-MM-DD-slug/page.md` con frontmatter e attribuzione fonte.
+6. **Aggiorna** `knowledge/ingested/index.md`.
+7. **Registra** in `knowledge/log.md` e `agent_tmp/`.
 
 ## Attribuzione della fonte (OBBLIGATORIO)
 
-Ogni pagina wiki creata da contenuto esterno DEVE includere nel **frontmatter markdown** queste proprieta':
+Ogni file MD creato da contenuto esterno DEVE includere nel **frontmatter YAML** queste proprieta':
 
 ```yaml
 ---
 title: "Titolo della pagina"
 description: "Breve descrizione del contenuto"
+category: ingested
 source_type: web          # web | file | upload
 source_url: "https://..." # URL completo se source_type=web
 source_file: "nome.pdf"   # nome file se source_type=file o upload
 source_name: "Titolo"     # nome descrittivo (titolo articolo, nome libro)
 fetched_at: "2026-05-29"  # data acquisizione (YYYY-MM-DD)
 tags: ["tag1", "tag2"]
+created: "2026-05-29"
+updated: "2026-05-29"
 ---
 ```
 
@@ -99,7 +105,7 @@ fetched_at: "2026-05-27"
 
 ### Registrazione nel log
 
-Nel wiki `log.md`:
+In `knowledge/log.md`:
 ```
 ## [YYYY-MM-DD] web | https://example.com/article — Titolo articolo
 ## [YYYY-MM-DD] document-processing | manuale-architettura.pdf (12 chunks, source_file)
@@ -112,7 +118,7 @@ In `agent_tmp/sessions/.../log.md`: registra anche l'URL esatto, tool usati, tem
 
 - **Immagine accessibile via URL pubblico**: mantieni il riferimento markdown `![](https://example.com/img.png)`. Il browser del lettore la carichera' direttamente.
 - **Immagine da archiviare localmente**: se la fonte potrebbe sparire o l'immagine e' critica, scaricala in `agent_tmp/artifacts/img/`, chiedi all'utente di copiarla in `/data/shared/`, e referenziala con path relativo.
-- Nel frontmatter della pagina wiki: `source_images: ["https://...", "/data/shared/img/diagram.png"]`
+- Nel frontmatter: `source_images: ["https://...", "/data/shared/img/diagram.png"]`
 
 ## Gestione errori
 
@@ -129,16 +135,17 @@ In `agent_tmp/sessions/.../log.md`: registra anche l'URL esatto, tool usati, tem
 
 Al termine di ogni web ingestion:
 
-1. **Pagina wiki creata** con frontmatter completo (source_type, source_url/file, source_name, fetched_at)
-2. **Wiki log.md aggiornato** con voce `## [YYYY-MM-DD] web | URL — Titolo`
-3. **agent_tmp/** aggiornato: `log.md` con dettaglio operazione, `context.md` con pagine toccate, `index.md` con nuova entry sessione
-4. **Se Percorso B**: file puliti da `agent_tmp/artifacts/` dopo la copia riuscita
-5. **Se immagini locali**: verifica che i path referenziati siano accessibili
+1. **File MD creato** in `knowledge/ingested/...` con frontmatter completo (source_type, source_url/file, source_name, fetched_at)
+2. **`knowledge/ingested/index.md` aggiornato** con la nuova entry
+3. **`knowledge/log.md` aggiornato** con voce `## [YYYY-MM-DD] web | URL — Titolo`
+4. **`agent_tmp/` aggiornato**: `log.md` con dettaglio operazione, `context.md` con file toccati, `index.md` con nuova entry sessione
+5. **Se Percorso B**: file puliti da `agent_tmp/artifacts/` dopo la copia riuscita
+6. **Se immagini locali**: verifica che i path referenziati siano accessibili
 
 ## Integrazione con gli altri workflow
 
-Il web ingestion si integra con il workflow standard di Document Processing. Una volta che il contenuto e' nella wiki:
-- Usa `wikijs_get_affected_pages` per trovare pagine correlate da aggiornare
-- Usa `wikijs_smart_query` per verificare che il nuovo contenuto sia trovabile semanticamente
+Il web ingestion si integra con il workflow standard di Document Processing. Una volta che il contenuto e' nella knowledge base:
+- Usa `Grep` per trovare file correlati da aggiornare in `knowledge/`
+- Usa `qdrant_search` per verificare che il nuovo contenuto sia trovabile semanticamente
 - Se il contenuto e' passato da Percorso B (pipeline), e' gia' indicizzato su Qdrant
-- Se Percorso A (diretto), valuta se fare `qdrant_upsert_chunks` per la ricerca semantica
+- Se Percorso A (diretto), valuta se fare `ingest_document` per l'indicizzazione semantica

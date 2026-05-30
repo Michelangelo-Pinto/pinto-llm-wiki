@@ -1,39 +1,37 @@
 ---
-description: Wiki-js-mcp v3 project overview — always active
+description: wiki-js-mcp v4 project overview — always active
 alwaysApply: true
 ---
 
-# wiki-js-mcp v3 — Panoramica
+# wiki-js-mcp v4 — Panoramica
 
-**4 server MCP, 65 tool totali, transport SSE.**
+**3 server MCP, 22 tool totali, transport SSE.**
 
 ## Server, porte, prefissi
 
 | Server | Container | Porta | Prefisso | Tool |
 |--------|-----------|-------|----------|------|
-| Wiki.js MCP | `wikijs_mcp` | `8000` | `wikijs_*` | 43 |
-| Qdrant MCP | `wikijs_qdrant_mcp` | `8001` | `qdrant_*` | 8 |
-| Ingestion Pipeline | `wikijs_ingestion` | `8002` | `ingest_*` | 7 |
-| Tesseract MCP | `wikijs_tesseract_mcp` | `8003` | `ocr_*` | 7 |
+| Qdrant MCP | `wikijs_qdrant_mcp` | 8001 | `qdrant_*` | 8 |
+| Ingestion Pipeline | `wikijs_ingestion` | 8002 | `ingest_*` | 7 |
+| Tesseract MCP | `wikijs_tesseract_mcp` | 8003 | `ocr_*` | 7 |
 
-Tutti su path `/sse`. Stack: 8 container avviati, 7 a regime (`wikijs_setup` esce con code 0).
+Tutti su path `/sse`. Stack: 4 container avviati, 4 a regime.
 
 ## Mappa repo
 
-- `mcp-servers/` — codice 4 server (wiki-js-mcp, qdrant-mcp, ingestion-pipeline, tesseract-mcp)
-- `doc_v3/` — documentazione fonte (tool catalog, guide, reference)
+- `mcp-servers/` — codice 3 server (qdrant-mcp, ingestion-pipeline, tesseract-mcp)
+- `knowledge/` — knowledge base file-system (MD organizzato per categorie/sottocategorie, con `index.md` per routing)
+- `doc_v4/` — documentazione fonte (tool catalog, guide, reference)
 - `tests/` — unit, integration, smoke, e2e, performance
-- `plans/` — storico; `plans/llm-wiki/AGENTS.md` e' v2 obsoleto, non usare
+- `plans/` — storico; `plans/v4-migration/` = archivio v3; `plans/llm-wiki/AGENTS.md` = v2 obsoleto
 - `AGENTS.md` (root) — punto d'ingresso; `.cursor/rules/10-wiki-operator.mdc` (operatore), `.cursor/rules/20-wiki-developer.mdc` (sviluppatore), `.cursor/rules/30-operational-memory.mdc` (memoria operativa)
 
 ## Fatti essenziali
 
-- **I nomi tool sono sempre prefissati**: `wikijs_*`, `qdrant_*`, `ingest_*`, `ocr_*`
-- **Volume `/data/shared`**: montato ro su qdrant-mcp, ingestion-pipeline, tesseract-mcp. NON su wiki-js-mcp. Per spostare file: `docker compose cp`
-- **Qdrant**: collezioni `wiki_pages` e `documents`, vector_size=384, distanza Cosine, modello `all-MiniLM-L6-v2`
-- **Bulk cap**: 50 pagine per `wikijs_bulk_get_pages`. Mai leggere one-by-one.
-- **Vettori wiki NON auto-indicizzati**: serve `qdrant_upsert_chunks` esplicito. Backlink auto-sincronizzati.
-- **Strumenti rimossi in v3**: `wikijs_vector_search`, `wikijs_rebuild_vector_index`
-- **log.md** append-only; **index.md** aggiornato a ogni ingest
+- **I nomi tool sono sempre prefissati**: `qdrant_*`, `ingest_*`, `ocr_*`
+- **Knowledge base = filesystem**: contenuti in `knowledge/` come `.md`. Solo `index.md` committati in git. Contenuti generati esclusi via `.gitignore`.
+- **Volume `/data/shared`**: montato ro su qdrant-mcp, ingestion-pipeline, tesseract-mcp. Per spostare file: `docker compose cp`
+- **Qdrant**: collezione `documents`, vector_size=384, distanza Cosine, modello `all-MiniLM-L6-v2`
+- **log.md** append-only; **index.md** (per categoria) aggiornato a ogni ingest
 - **Contratto JSON**: tutti i tool ritornano `json.dumps(...)`; errori = `{"error": "..."}`
 - **Confini agente**: `docker compose build/up/down/restart/logs/ps` solo su richiesta esplicita; niente edit `.env`/`mcp.json`, niente `docker compose cp`, niente `docker compose down -v` senza conferma

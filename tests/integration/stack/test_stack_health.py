@@ -26,8 +26,6 @@ SERVICES = [
     ("qdrant-mcp", "qdrant-mcp", 8001, "Qdrant MCP server"),
     ("ingestion-pipeline", "ingestion-pipeline", 8002, "Ingestion Pipeline MCP"),
     ("tesseract-mcp", "tesseract-mcp", 8003, "Tesseract MCP server"),
-    ("wiki-js-mcp", "wiki-js-mcp", 8000, "Wiki.js MCP server"),
-    ("wiki", "wiki", 3000, "Wiki.js application"),
 ]
 
 
@@ -50,7 +48,6 @@ MCP_SSE_ENDPOINTS = [
     ("qdrant-mcp", "http://qdrant-mcp:8001/sse"),
     ("ingestion-pipeline", "http://ingestion-pipeline:8002/sse"),
     ("tesseract-mcp", "http://tesseract-mcp:8003/sse"),
-    ("wiki-js-mcp", "http://wiki-js-mcp:8000/sse"),
 ]
 
 

@@ -1,66 +1,95 @@
 ---
-description: Operare la knowledge base wiki-js-mcp: ingest, query, lint, document processing, OCR e regole operative
+description: Operare la knowledge base v4: ingest, query, lint, document processing, OCR e regole operative
 alwaysApply: false
 ---
 
-# Wiki Operator — Workflow operativi
+# Knowledge Operator — Workflow operativi v4
 
 ## Bootstrap di sessione
 
 1. **Crea una sessione in agent_tmp/** — vedi `.cursor/rules/25-agent-logging.mdc` per la struttura e il formato. Determina il progressivo da `agent_tmp/index.md`, crea `sessions/YYYY-MM-DD-NNN/` con `log.md` e `context.md`.
-2. `wikijs_connection_status` — verifica connettivita' Wiki.js e Qdrant. Registra esito in `log.md`.
-3. `wikijs_repository_context` — contesto Git del repository. Registra in `context.md`.
-4. Leggi `doc_v3/reference/quick-reference.md` e `doc_v3/guides/llm-wiki-workflows.md`
+2. Verifica connettivita' Qdrant: `qdrant_list_collections`. Registra esito in `log.md`.
+3. Leggi `knowledge/index.md` per la mappa attuale delle categorie.
+4. Leggi `doc_v4/reference/quick-reference.md` e `doc_v4/guides/llm-wiki-workflows.md`
 
 ## I 4 workflow
 
-### 1. Ingest (nuova conoscenza nella wiki)
+### 1. Ingest (nuova conoscenza nella KB)
 
 ```
-wikijs_search_pages("topic") → wikijs_get_page_stats(candidates)
-→ wikijs_get_affected_pages(core_page_id)
-→ wikijs_bulk_get_pages(affected_ids)
-→ wikijs_update_page(id, content=updated)
-→ wikijs_append_to_page(log_id, "## [YYYY-MM-DD] ingest | Titolo")
-→ wikijs_update_page(index_id, content=updated_index)
-→ wikijs_rebuild_backlink_index()  (solo dopo bulk import)
+Grep in knowledge/ per topic esistente → Read dei file rilevanti
+→ qdrant_search(collection="documents", query_text="topic") → risultati semantici
+→ Scrivi nuovo file MD in knowledge/category/subcategory/nome.md con frontmatter
+→ Aggiorna knowledge/category/subcategory/index.md con la nuova entry
+→ Aggiorna knowledge/category/index.md se necessario
+→ Append a knowledge/log.md (se esiste) o crealo
 ```
 
-### 2. Document Processing (file esterni → wiki)
+**Regola**: prima di creare nuovo contenuto, cercare sempre se esiste gia' qualcosa di correlato (Grep + qdrant_search).
+
+### 2. Document Processing (file esterni → KB)
 
 ```
 ingest_document(file_path="/data/shared/doc.pdf") → document_id
 → ingest_get_status(document_id) → verifica chunks creati
 → ingest_search_chunks(query="topic", limit=5) → contenuto rilevante
-→ wikijs_create_page(title="Da: doc.pdf", content=chunks, frontmatter={source_type:"file", source_file:"doc.pdf", ...})
-→ wikijs_get_affected_pages(page_id) → impatto
+→ Scrivi file MD in knowledge/ingested/YYYY-MM-DD-slug/doc.md con frontmatter
+     source_type: file
+     source_file: "doc.pdf"
+     source_name: "Nome descrittivo"
+     fetched_at: "YYYY-MM-DD"
+     category: ingested
+→ Aggiorna knowledge/ingested/index.md
+→ Se rilevante per altre categorie, crea anche un summary MD nella categoria appropriata
 ```
 
-**Attribuzione fonte OBBLIGATORIA**: la pagina wiki creata deve includere nel frontmatter: `source_type`, `source_file`, `source_name`, `fetched_at`. Vedi `.cursor/rules/35-web-ingestion.mdc` per il formato completo.
+**Attribuzione fonte OBBLIGATORIA**: il file MD creato deve includere nel frontmatter: `source_type`, `source_file`, `source_name`, `fetched_at`. Vedi `.cursor/rules/35-web-ingestion.mdc` per il formato completo.
 
 ### 3. Query (ricerca semantica + sintesi)
 
 ```
-wikijs_smart_query("domanda in linguaggio naturale", limit=10)
-→ wikijs_get_page_stats(top_ids) → triage via metadata
-→ wikijs_bulk_get_pages(relevant_ids) → lettura contenuto
-→ Sintesi con citazioni
-→ wikijs_create_page(title="Query: ...", content=risposta)  (opzionale)
+qdrant_search(collection="documents", query_text="domanda in linguaggio naturale", limit=10)
+→ Per ogni risultato: Read del file MD corrispondente
+→ Sintesi con citazioni (link ai file MD)
+→ Opzionale: scrivi risposta in knowledge/queries/YYYY-MM-DD-query.md
 ```
+
+**Priorita' di ricerca**:
+1. `qdrant_search` per ricerca semantica (vettori)
+2. `Grep` in `knowledge/` per keyword esatte
+3. Navigazione via `index.md` per esplorazione strutturata
 
 ### 4. Lint (health check + fix)
 
 ```
-wikijs_wiki_health() → dashboard issues (7 check)
-→ wikijs_bulk_get_pages(orphan_ids + stale_ids) → ispezione
-→ Decidi: link, update, o delete
-→ wikijs_update_page / wikijs_delete_page
-→ wikijs_append_to_page(log_id, "## [YYYY-MM-DD] lint | Sommario")
+Glob per knowledge/**/*.md → lista tutti i file MD
+→ Per ogni file: verifica frontmatter (title, category, created)
+→ Verifica che ogni file MD sia elencato nell'index.md della sua categoria
+→ Verifica che non ci siano index.md obsoleti (che elencano file inesistenti)
+→ Correggi i problemi trovati
+→ Append a knowledge/log.md con esito
 ```
 
-Usa `include_checks=["orphans", "stale"]` per scoping. Health completo (7 check) settimanalmente.
+## 5. OCR (documenti scansionati)
 
-### 6. Web Ingestion (browser → wiki)
+```
+ocr_detect_document_type(input_path) → tipo documento
+→ ocr_extract_text(input_path, language="eng+ita")
+→ ocr_get_confidence(input_path) → se <70%
+→ ocr_preprocess_and_extract(input_path, preprocess_steps=["deskew","denoise","threshold"])
+→ Scrivi file MD in knowledge/ingested/YYYY-MM-DD-slug/ocr-result.md con frontmatter:
+     source_type: upload
+     source_file: "scansione.pdf"
+     source_name: "Nome descrittivo"
+     fetched_at: "YYYY-MM-DD"
+     ocr_confidence: 85
+     ocr_language: "eng+ita"
+→ Aggiorna knowledge/ingested/index.md
+```
+
+**Attribuzione fonte OBBLIGATORIA**: includi nel frontmatter `source_type: "upload"`, `source_file` (nome file originale), `source_name` (nome descrittivo), `fetched_at`.
+
+### 6. Web Ingestion (browser → KB)
 
 Vedi `.cursor/rules/35-web-ingestion.mdc` per i dettagli completi.
 
@@ -68,8 +97,12 @@ Vedi `.cursor/rules/35-web-ingestion.mdc` per i dettagli completi.
 ```
 Browser: naviga URL → estrai contenuto (testo/HTML)
 → Formatta in markdown pulito
-→ wikijs_create_page(title="Titolo", content=markdown, frontmatter={source_type:"web", source_url:url, ...})
-→ wikijs_append_to_page(log_id, "## [YYYY-MM-DD] web | URL — Titolo")
+→ Scrivi file MD in knowledge/ingested/YYYY-MM-DD-slug/page.md con frontmatter
+     source_type: web
+     source_url: "https://..."
+     source_name: "Titolo articolo"
+     fetched_at: "YYYY-MM-DD"
+→ Aggiorna knowledge/ingested/index.md
 ```
 
 **Percorso B — Pipeline (pagine complesse, immagini, PDF):**
@@ -77,59 +110,42 @@ Browser: naviga URL → estrai contenuto (testo/HTML)
 Browser: naviga URL → estrai e salva in agent_tmp/artifacts/
 → Chiedi all'utente: copia il file in /data/shared/
 → ingest_document(file_path="/data/shared/file.md") → ingest_get_status
-→ wikijs_create_page(title="Titolo", content=chunks, frontmatter={source_type:"web", source_url:url, ...})
-→ wikijs_append_to_page(log_id, "## [YYYY-MM-DD] web | URL — Titolo")
+→ Scrivi file MD in knowledge/ingested/... con frontmatter
+→ Aggiorna knowledge/ingested/index.md
 ```
-
-**Attribuzione fonte OBBLIGATORIA**: frontmatter con `source_type: "web"`, `source_url`, `source_name`, `fetched_at`.
-
-### 5. OCR (documenti scansionati)
-
-```
-ocr_detect_document_type(input_path) → tipo documento
-→ ocr_extract_text(input_path, language="eng+ita")
-→ ocr_get_confidence(input_path) → se <70%
-→ ocr_preprocess_and_extract(input_path, preprocess_steps=["deskew","denoise","threshold"])
-→ wikijs_create_page(title="Contenuto Scannerizzato", content=extracted_text, frontmatter={source_type:"upload", source_file:filename, ...})
-```
-
-**Attribuzione fonte OBBLIGATORIA**: includi nel frontmatter `source_type: "upload"`, `source_file` (nome file originale), `source_name` (nome descrittivo), `fetched_at`.
-
-### 6. Web Ingestion (browser → wiki)
 
 ## Hard rules / Anti-pattern
 
-1. **Mai leggere one-by-one**: `wikijs_bulk_get_pages` per 2+ pagine (cap 50).
-2. **Triage prima di leggere**: `wikijs_get_page_stats` o `wikijs_wiki_health` per identificare pagine rilevanti.
-3. **Vettori wiki NON auto-indicizzati**: dopo create/update di pagine, esegui `qdrant_upsert_chunks` per la ricerca semantica.
-4. **File esterni → Qdrant prima**: `ingest_document` prima di `wikijs_smart_query`.
-5. **log.md append-only**: solo `wikijs_append_to_page`, mai read-modify-write.
-6. **Cancellazioni batch**: sempre `confirm_deletion=True`.
-7. **Mai inventare nomi tool**: i tool rimossi in v3 (`wikijs_vector_search`, `wikijs_rebuild_vector_index`) non esistono piu'. Nomi reali: `ingest_get_status` (non `ingest_status`), niente `ingest_cancel` o `list_ingested_documents`.
+1. **Mai creare contenuto senza cercare prima**: Grep + qdrant_search per evitare duplicati.
+2. **Sempre aggiornare index.md**: ogni nuovo file MD deve apparire nell'index.md della sua categoria.
+3. **Frontmatter obbligatorio**: ogni file MD deve avere `title`, `category`, `created`, `updated` minimo.
+4. **File esterni → Qdrant prima**: `ingest_document` prima di cercare contenuti da file esterni.
+5. **log.md append-only**: solo append, mai read-modify-write.
+6. **Massimo 4 livelli di profondita'** in `knowledge/`.
+7. **Slug lowercase con trattini** per nomi file e directory.
+8. **Mai inventare nomi tool**: i tool v3 rimossi (`wikijs_*`) non esistono piu'. Tool validi: `qdrant_*`, `ingest_*`, `ocr_*`.
 
-## Convenzioni markdown / import-export
+## Convenzioni markdown
 
-- `editor: "markdown"` per tutte le pagine wiki
-- Link assoluti: `[testo](/path/completo)` — non relativi
-- Tag in frontmatter YAML, non `#tag` nel body
+- Frontmatter YAML all'inizio di ogni file
+- Link relativi tra file: `[testo](../category/subcategory/file.md)`
+- Mermaid per diagrammi: ` ```mermaid ... ``` `
+- Tag nel frontmatter YAML, non `#tag` nel body
 - `* * *` per horizontal rules invece di `---` (conflitto frontmatter)
-- Gerarchia path-based: `parent/child`, max depth 5
-- `update_existing=True` nei re-import
-- Frontmatter export: `title`, `wiki_path`, `tags`, `created`, `updated`
+- Gerarchia directory: `category/subcategory/`, max depth 4
 
 ## Routing per porta
 
-- `wikijs_*` → porta **8000**
 - `qdrant_*` → porta **8001**
 - `ingest_*` → porta **8002**
 - `ocr_*` → porta **8003**
 
-Errori comuni: vedi [Error Catalog](../doc_v3/reference/error-catalog.md).
+Errori comuni: vedi [Error Catalog](../doc_v4/reference/error-catalog.md).
 
 ## Logging operativo
 
 Al termine di ogni workflow, chiudi la sessione in `agent_tmp/`:
 - Aggiorna `log.md` con l'esito finale (success/partial/failure)
-- Aggiorna `context.md` con le pagine toccate
+- Aggiorna `context.md` con i file toccati
 - Aggiorna `agent_tmp/index.md` con il riepilogo della sessione
-- Se l'operazione ha modificato la KB, registra anche nel wiki `log.md` (append-only)
+- Se l'operazione ha modificato la KB, registra anche in `knowledge/log.md` (append-only)

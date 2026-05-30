@@ -1,7 +1,6 @@
 FROM python:3.12-slim
 
 # Test deps + ingestion-pipeline runtime (E2E imports tools directly)
-# + wiki-mcp-server runtime (regression/stack tests import tools directly)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-eng \
@@ -36,7 +35,7 @@ RUN pip install --no-cache-dir \
 WORKDIR /app
 
 # Set Python path so test imports work from any container source mount
-ENV PYTHONPATH=/app:/app/qdrant_mcp:/app/ingestion_pipeline:/app/wiki_mcp_server
+ENV PYTHONPATH=/app:/app/qdrant_mcp:/app/ingestion_pipeline
 ENV PYTHONUNBUFFERED=1
 
 CMD ["pytest", "tests/", "-v", "--tb=short"]

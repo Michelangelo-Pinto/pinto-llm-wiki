@@ -132,11 +132,6 @@ def tesseract_mcp_url() -> str:
     return os.environ.get("TESSERACT_MCP_URL", "http://tesseract-mcp:8003")
 
 
-@pytest.fixture(scope="session")
-def wikijs_mcp_url() -> str:
-    return os.environ.get("WIKIJS_MCP_URL", "http://wiki-js-mcp:8000")
-
-
 # ---------------------------------------------------------------------------
 # Client fixtures — one per server
 # ---------------------------------------------------------------------------
@@ -169,14 +164,4 @@ def tesseract_client(tesseract_mcp_url):
     client.close()
 
 
-@pytest.fixture(scope="module")
-def wikijs_client(wikijs_mcp_url):
-    """MCP SSE client connected to Wiki.js MCP."""
-    # Wiki.js MCP needs the full stack — may fail if Wiki.js is not set up
-    client = McpSseClient(wikijs_mcp_url, timeout=10)
-    try:
-        client.connect()
-    except Exception:
-        pytest.skip("Wiki.js MCP SSE endpoint not reachable (full stack required)")
-    yield client
-    client.close()
+# Wiki.js MCP removed in v4 — all wikijs_* tools and client fixtures removed.

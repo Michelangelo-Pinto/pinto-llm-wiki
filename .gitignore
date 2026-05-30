@@ -113,3 +113,9 @@ agent_tmp/
 
 # Ingest staging (local source files before pipeline)
 to_ingest/
+
+# Knowledge base (file-system markdown KB)
+# Solo la struttura di routing (index.md) e' tracciata in git.
+# I contenuti generati dall'agente non vengono committati.
+knowledge/**/*.md
+!knowledge/**/index.md

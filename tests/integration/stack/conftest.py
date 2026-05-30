@@ -1,9 +1,7 @@
-"""Fixtures for full-stack integration tests.
+"""Fixtures for full-stack integration tests (v4).
 
 These tests require the complete Docker stack to be running:
-  - Wiki.js (port 3000)
   - Qdrant DB (port 6334 REST)
-  - Wiki.js MCP (port 8000)
   - Qdrant MCP (port 8001)
   - Ingestion Pipeline MCP (port 8002)
   - Tesseract MCP (port 8003)
@@ -59,8 +57,6 @@ def stack_env():
         "qdrant_mcp_url": os.environ.get("QDRANT_MCP_URL", "http://qdrant-mcp:8001"),
         "ingestion_mcp_url": os.environ.get("INGESTION_MCP_URL", "http://ingestion-pipeline:8002"),
         "tesseract_mcp_url": os.environ.get("TESSERACT_MCP_URL", "http://tesseract-mcp:8003"),
-        "wikijs_mcp_url": os.environ.get("WIKIJS_MCP_URL", "http://wiki-js-mcp:8000"),
-        "wikijs_api_url": os.environ.get("WIKIJS_API_URL", "http://wiki:3000"),
     }
 
 
@@ -72,8 +68,6 @@ def verify_stack_health(stack_env):
         ("qdrant-mcp", "qdrant-mcp", 8001),
         ("ingestion-pipeline", "ingestion-pipeline", 8002),
         ("tesseract-mcp", "tesseract-mcp", 8003),
-        ("wiki-js-mcp", "wiki-js-mcp", 8000),
-        ("wiki", "wiki", 3000),
     ]
     for name, host, port in services:
         _wait_for_port(host, port)

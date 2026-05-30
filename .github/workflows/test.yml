@@ -31,11 +31,11 @@ jobs:
 
       - name: Run unit tests
         run: |
-          PYTHONPATH="mcp-servers/qdrant-mcp/src:mcp-servers/ingestion-pipeline/src:mcp-servers/wiki-js-mcp/src:mcp-servers/tesseract-mcp/src" \
+          PYTHONPATH="mcp-servers/qdrant-mcp/src:mcp-servers/ingestion-pipeline/src:mcp-servers/tesseract-mcp/src" \
           pytest tests/unit/ -v -m unit --tb=short
 
   # Fast tests: Qdrant integration + E2E + performance benchmarks
-  # These only need qdrant-db (no full Wiki.js stack).
+  # These only need qdrant-db (no full stack required).
   qdrant-tests:
     runs-on: ubuntu-latest
     steps:
@@ -56,7 +56,7 @@ jobs:
       - name: Run performance benchmarks
         run: docker compose --profile test run --rm test-runner pytest tests/performance/ -v -m performance --benchmark-only --tb=short
 
-  # Full-stack tests: entire 8-container stack required.
+  # Full-stack tests: all 4 containers required (v4).
   # Slower — runs on main branch pushes and manual dispatch only.
   stack-tests:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -65,20 +65,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up environment
-        run: |
-          cp .env.example .env
-          echo "POSTGRES_PASSWORD=ci_test_password" >> .env
-          echo "WIKIJS_PASSWORD=admin123" >> .env
+        run: cp .env.example .env
 
       - name: Start full stack
         run: docker compose up -d --build
 
       - name: Wait for services
         run: |
-          echo "Waiting for Wiki.js to be ready..."
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
-              echo "Wiki.js ready after ${i}s"
+          echo "Waiting for Qdrant to be ready..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:6334/health > /dev/null 2>&1; then
+              echo "Qdrant ready after ${i}s"
               break
             fi
             sleep 2
@@ -90,15 +87,11 @@ jobs:
       - name: Run stack integration tests
         run: docker compose --profile integration run --rm test-runner pytest tests/integration/stack/ -v -m integration_stack --tb=short
 
-      - name: Run wiki regression tests
-        run: docker compose --profile integration run --rm test-runner pytest tests/regression/ -v -m regression --tb=short
-
       - name: Run SSE smoke tests
         run: docker compose --profile integration run --rm test-runner pytest tests/smoke/ -v -m smoke --tb=short
 
       - name: Show logs on failure
         if: failure()
         run: |
-          docker compose logs --tail 100 wiki-js-mcp
           docker compose logs --tail 100 qdrant-mcp
-          docker compose logs --tail 50 wiki
+          docker compose logs --tail 100 ingestion-pipeline

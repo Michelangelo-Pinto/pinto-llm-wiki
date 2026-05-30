@@ -1,6 +1,6 @@
-# Tests — Developer Guide
+# Tests — Developer Guide v4
 
-How to write, run, and debug tests for wiki-js-mcp v3.
+How to write, run, and debug tests for wiki-js-mcp v4.
 
 ## Directory Structure
 
@@ -19,8 +19,7 @@ tests/
 │       ├── __init__.py
 │       ├── conftest.py         # Stack health wait + env
 │       ├── test_stack_health.py
-│       ├── test_stack_ingest_search.py
-│       └── test_stack_wiki_semantic.py
+│       └── test_stack_ingest_search.py
 ├── e2e/
 │   ├── __init__.py
 │   ├── conftest.py             # Test data paths, session collection
@@ -28,9 +27,10 @@ tests/
 ├── performance/
 │   ├── __init__.py
 │   └── test_benchmarks.py      # 7 benchmarks
-├── regression/
-│   ├── __init__.py
-│   └── test_wiki_tools.py      # ~12 regression tests
+├── unit/
+│   ├── qdrant/
+│   ├── ingestion/
+│   └── tesseract/
 └── test-data/
     ├── README.md               # Fixture catalog
     ├── generate_test_data.py   # Regeneration script
@@ -45,7 +45,7 @@ tests/
 ## Prerequisites
 
 - Docker and Docker Compose
-- `.env` file (copy from `.env.example` and set `POSTGRES_PASSWORD`)
+- `.env` file (copy from `.env.example`)
 
 ## Quick Start
 
@@ -71,8 +71,7 @@ Defined in `tests/pytest.ini`:
 | `e2e` | `qdrant-db` | Ingestion pipeline tests |
 | `performance` | `qdrant-db` | Benchmarks (slow) |
 | `integration_stack` | Full stack | Cross-service tests |
-| `regression` | Full stack | Wiki.js MCP tool regression |
-| `unit` | None | Pure unit tests (future) |
+| `unit` | None | Pure unit tests |
 
 Use markers to filter:
 
@@ -90,19 +89,17 @@ volumes:
   - ./tests:/app/tests:ro
   - ./mcp-servers/qdrant-mcp/src:/app/qdrant_mcp:ro
   - ./mcp-servers/ingestion-pipeline/src:/app/ingestion_pipeline:ro
-  - ./mcp-servers/wiki-js-mcp/src:/app/wiki_mcp_server:ro
 ```
 
 The `PYTHONPATH` includes all source directories:
 ```
-PYTHONPATH=/app:/app/qdrant_mcp:/app/ingestion_pipeline:/app/wiki_mcp_server
+PYTHONPATH=/app:/app/qdrant_mcp:/app/ingestion_pipeline
 ```
 
 This means tests can do direct imports:
 ```python
 from qdrant_mcp.tools import qdrant_search
 from ingestion_pipeline.tools import ingest_document
-from wiki_mcp_server.tools_pages import wikijs_smart_query
 ```
 
 **No SSE transport is used in tests** — direct imports are deterministic and faster. SSE transport is smoke-tested in `tests/integration/stack/test_stack_health.py`.
@@ -147,6 +144,5 @@ docker compose logs qdrant-db
 Stack tests wait up to 30s for services to be healthy. If they timeout:
 ```bash
 docker compose ps
-docker compose logs wiki-js-mcp
 docker compose logs qdrant-mcp
 ```

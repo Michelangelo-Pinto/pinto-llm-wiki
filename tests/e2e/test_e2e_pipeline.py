@@ -165,7 +165,7 @@ class TestIngestDocument:
         """Re-ingesting the same file should be skipped (content hash match)."""
         unique_file = tmp_path / "idempotency_test.txt"
         unique_file.write_text(
-            "Unique idempotency test content for wiki-js-mcp pipeline validation."
+            "Unique idempotency test content for ingestion pipeline validation."
         )
         file_path = str(unique_file)
 
