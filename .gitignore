@@ -110,3 +110,6 @@ resources/
 
 # Agent temporary files
 agent_tmp/
+
+# Ingest staging (local source files before pipeline)
+to_ingest/
