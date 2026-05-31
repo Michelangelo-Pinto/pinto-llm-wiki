@@ -15,7 +15,9 @@ RUN pip install --no-cache-dir \
     python-docx>=1.1.0 \
     pytesseract>=0.3.10 \
     Pillow>=10.0.0 \
-    sqlalchemy>=2.0.0
+    sqlalchemy>=2.0.0 \
+    beautifulsoup4>=4.12.0 \
+    lxml>=5.0.0
 
 # Pre-download the embedding model to eliminate cold start delay on first call
 RUN python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"

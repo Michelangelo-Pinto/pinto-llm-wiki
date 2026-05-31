@@ -1,12 +1,13 @@
 # Quickstart
 
-Get wiki-js-mcp v3 running in 5 minutes.
+Get wiki-js-mcp v4 running in 5 minutes.
 
 ## Prerequisites
 
 - Docker and Docker Compose
-- 8 GB RAM (for all 8 containers)
-- ~5 GB disk space (images + models)
+- 4 GB RAM (for all 5 containers)
+- ~3 GB disk space (images + models)
+- (Optional) `OPENAI_API_KEY` for enrichment pipeline LLM features
 
 ## 1. Clone and Configure
 
@@ -18,10 +19,10 @@ cp .env.example .env
 
 Edit `.env` and set at minimum:
 ```ini
-POSTGRES_PASSWORD=your_secure_password
+OPENAI_API_KEY=sk-...        # Required for enrichment LLM classification
 ```
 
-Optional: customize ports and credentials. See [Configuration Reference](../reference/config.md) for all environment variables.
+Optional: customize ports. See [Configuration Reference](../reference/config.md) for all environment variables.
 
 ## 2. Start the Stack
 
@@ -29,15 +30,12 @@ Optional: customize ports and credentials. See [Configuration Reference](../refe
 docker compose up -d
 ```
 
-This starts 8 containers:
-- `wikijs_db` — PostgreSQL 15 (alpine)
-- `wikijs_app` — Wiki.js v2
-- `wikijs_setup` — One-shot initial setup (runs once)
-- `wikijs_mcp` — Wiki.js MCP server (:8000)
-- `wikijs_qdrant` — Qdrant vector DB (REST :6334)
+This starts 5 containers:
+- `wikijs_qdrant` — Qdrant vector DB (REST :6334, gRPC :6333)
 - `wikijs_qdrant_mcp` — Qdrant MCP server (:8001)
 - `wikijs_ingestion` — Ingestion Pipeline (:8002)
 - `wikijs_tesseract_mcp` — Tesseract OCR MCP (:8003)
+- `wikijs_enrichment` — Enrichment Pipeline (:8004)
 
 First startup takes 5-10 minutes (image build with pre-downloaded models). Subsequent starts are fast.
 
@@ -47,11 +45,11 @@ First startup takes 5-10 minutes (image build with pre-downloaded models). Subse
 # Check all containers are healthy
 docker compose ps
 
-# Test MCP server endpoints (HTTP status check, non bloccante)
-curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/sse && echo " OK"  # Wiki.js MCP
+# Test MCP server endpoints (HTTP status check)
 curl -s -o /dev/null -w '%{http_code}' http://localhost:8001/sse && echo " OK"  # Qdrant MCP
 curl -s -o /dev/null -w '%{http_code}' http://localhost:8002/sse && echo " OK"  # Ingestion Pipeline
 curl -s -o /dev/null -w '%{http_code}' http://localhost:8003/sse && echo " OK"  # Tesseract MCP
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8004/sse && echo " OK"  # Enrichment Pipeline
 ```
 
 ## 4. Configure Cursor
@@ -61,10 +59,10 @@ Add to your Cursor `mcp.json`:
 ```json
 {
   "mcpServers": {
-    "wikijs":     { "type": "sse", "url": "http://localhost:8000/sse" },
     "qdrant":     { "type": "sse", "url": "http://localhost:8001/sse" },
     "ingestion":  { "type": "sse", "url": "http://localhost:8002/sse" },
-    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" }
+    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" },
+    "enrichment": { "type": "sse", "url": "http://localhost:8004/sse" }
   }
 }
 ```
@@ -83,91 +81,55 @@ docker compose --profile integration run --rm test-runner \
 
 ## Next Steps
 
-- [Docker Operations](docker-operations.md) — Build, debug, seed data
-- [Multi-MCP Architecture](../architecture/multi-mcp-architecture.md) — Service design
-- [Testing Guide](../reference/testing.md) — Full test documentation
-- [MCP Servers](../mcp-servers/index.md) — Tool catalogs per server
+- [Stack Lifecycle Guide](stack-lifecycle.md) — Build, start, stop, rebuild
+- [LLM Wiki Workflows](llm-wiki-workflows.md) — Core operating patterns
+- [Agent Orientation](agent-orientation.md) — How to instruct the LLM agent
+- [Tool Catalog](../reference/tool-catalog.md) — All 26 tools with signatures
+- [System Overview](../architecture/system-overview.md) — Architecture and data flow
 
 ---
 
 ## 6. First End-to-End Flow
 
-Once the stack is running and tests pass, try this complete workflow to verify everything works.
-
-### Seed test data
-
-Populate Wiki.js with sample pages (cross-referenced for backlinks and graph testing):
-
-```bash
-docker compose exec wiki-js-mcp python3 scripts/seed_wiki_docs.py
-```
-
-This creates ~20 wiki pages with tags, links, and a hierarchy.
+Once the stack is running and tests pass, try this complete workflow.
 
 ### Ingest a document
 
-Copy a PDF into the shared volume and process it:
+Copy a file into the shared volume and process it:
 
 ```bash
-# Copy a PDF to the container
-docker compose cp /path/to/your/document.pdf ingestion-pipeline:/data/shared/doc.pdf
-
-# Ingest it via the ingestion pipeline
-# Nota: il POST diretto su /sse non e' il protocollo SSE standard.
-# Preferisci usare i tool via MCP client (Cursor/Claude).
-curl -X POST http://localhost:8002/sse \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"ingest_document","arguments":{"file_path":"/data/shared/doc.pdf"}},"id":1}'
+# Copy a file to the to_ingest/ directory (bind-mounted to /data/shared)
+cp /path/to/your/document.pdf to_ingest/
 ```
 
-Expected response: `{"status": "completed", "chunks_created": N, "file_type": "...", "document_id": "..."}`
-
-### Search the wiki
-
-Use Cursor (the agent) or curl to run a smart query:
+Then tell the agent in Cursor:
 
 ```
-# Tell the agent in Cursor:
-wikijs_smart_query("getting started")
+1. ingest_detect_type("/data/shared/document.pdf") — check file type
+2. ingest_document("/data/shared/document.pdf") — full pipeline
+3. ingest_get_status(document_id) — verify completion
 ```
 
-Or via curl (SSE JSON-RPC; prefer MCP client):
-
-```bash
-curl -X POST http://localhost:8000/sse \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"wikijs_smart_query","arguments":{"query":"getting started","limit":5}},"id":1}'
-```
-
-### Create a page from ingested content
-
-After ingestion, search the ingested chunks and create a wiki page:
+### Search ingested content
 
 ```
-# Tell the agent:
+qdrant_search(collection="documents", query_text="your topic", limit=10)
+```
+
+### Create a knowledge page from ingested content
+
+```
 1. ingest_search_chunks(query="summary", limit=3)
-2. wikijs_create_page(title="From: doc.pdf", content=<chunks concatenated>)
+2. Write knowledge/ingested/YYYY-MM-DD-slug/page.md with frontmatter
+3. Update knowledge/ingested/index.md
 ```
 
-### Export the wiki
+### Run enrichment (optional)
 
-```bash
-# The agent runs: wikijs_export_wiki("/data/shared/wiki-export")
-# Extract to your host:
-docker compose cp wiki-js-mcp:/data/shared/wiki-export ./wiki-export
-ls ./wiki-export/
 ```
-
-### Import edited pages back
-
-```bash
-# Edit files in ./wiki-export/ locally
-
-# Copy back to container
-docker compose cp ./wiki-export wiki-js-mcp:/data/shared/wiki-export
-
-# The agent runs:
-# wikijs_import_directory("/data/shared/wiki-export", update_existing=True)
+enrich_get_config() — check if enrichment is enabled
+enrich_document(document_id="...") — run enrichment manually
+enrich_get_status(document_id="...") — check results
 ```
 
 ### Verify with tests
@@ -180,8 +142,4 @@ docker compose --profile test run --rm test-runner
 docker compose up -d
 docker compose --profile integration run --rm test-runner \
   pytest tests/integration/stack/ tests/regression/ -v
-
-# SSE smoke tests
-docker compose --profile integration run --rm test-runner \
-  pytest tests/smoke/ -v -m smoke
 ```

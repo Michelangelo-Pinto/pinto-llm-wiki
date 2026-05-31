@@ -9,7 +9,7 @@ Technical design of the document ingestion pipeline (`wikijs_ingestion` containe
 
 ```mermaid
 flowchart TD
-    File["📄 Input File\n(PDF, DOCX, MD, TXT, image)"]
+    File["📄 Input File\n(PDF, DOCX, MD, TXT, HTML,\nJSON, XML, EPUB, image)"]
     Detect["1. Detect\nPyMuPDF sampling + extension"]
     Extract["2. Extract\nPyMuPDF / python-docx / text_parser"]
     OCRRoute{"OCR needed?"}
@@ -50,6 +50,10 @@ Classifies a file into a `subtype` and determines whether OCR is required. Uses 
 | `mixed_docx` | DOCX with embedded images | Yes | python-docx + image extraction |
 | `markdown` | .md files | No | `text_parser.extract_text()` |
 | `text` | .txt, .rst files | No | `text_parser.extract_text()` |
+| `html` | .html, .htm files | No | `html_parser.extract_html()` |
+| `json` | .json files | No | `json_parser.extract_json()` |
+| `xml` | .xml files | No | `xml_parser.extract_xml()` |
+| `epub` | .epub files | No | `epub_parser.extract_epub()` |
 | `image` | .png, .jpg, .tiff, .bmp, .gif, .webp | Yes | Direct pytesseract |
 | `unsupported` | Unknown extension | N/A | Error returned |
 
@@ -100,6 +104,35 @@ Uses `python-docx` to iterate paragraphs. For `mixed_docx`, images within paragr
 ### Text/Markdown extraction
 
 `text_parser.py` reads files with encoding fallback: UTF-8 → latin-1 → cp1252 → UTF-8 with replacement characters.
+
+### HTML extraction
+
+**Module:** `parsers/html_parser.py`
+
+Uses BeautifulSoup with `lxml` parser. Strips non-content elements (`<script>`, `<style>`, `<nav>`, `<footer>`, HTML comments). Converts structural elements to markdown:
+- `<h1>`–`<h6>` → `#`–`######` headings
+- `<li>` → `- ` bullet points
+- `<pre>`, `<code>` → 4-space indented blocks
+
+Encoding fallback: UTF-8 → latin-1 → cp1252 → UTF-8 replacement.
+
+### JSON extraction
+
+**Module:** `parsers/json_parser.py`
+
+Converts JSON to structured plain text. Arrays of objects are rendered as "key: value" lines separated by `---`. Nested objects are flattened to depth 2 with dot-notation keys (e.g., `address.city: Roma`). For files > 100 MB, emits a warning (full file is loaded into memory).
+
+### XML extraction
+
+**Module:** `parsers/xml_parser.py`
+
+Uses `xml.etree.ElementTree` for parsing. Leaf node text is formatted as `[tag_name]: text`. Handles common XML namespaces by stripping URI prefixes from tag names (e.g., `{http://www.w3.org/2005/Atom}title` → `title`). Falls back to raw regex-based text extraction if XML is malformed.
+
+### EPUB extraction
+
+**Module:** `parsers/epub_parser.py`
+
+Opens EPUB as ZIP archive, reads `META-INF/container.xml` to locate the OPF file, follows the spine order to extract XHTML/HTML chapters. Each chapter is concatenated with `[Chapter: N]` markers. Falls back to all HTML/XHTML files in the archive if spine parsing fails. Uses BeautifulSoup for content extraction from each chapter.
 
 ## Stage 3: Chunking
 
@@ -177,17 +210,38 @@ First call logs the model load. Subsequent calls use the cached model.
 
 `embed_chunks()` accepts a list of texts and encodes them in a single batch. SentenceTransformers internally batches by token count. For documents with many chunks (100+), the entire chunk list is passed at once — no manual mini-batching needed.
 
-## Stage 5: Upsert to Qdrant
+## Stage 5: Upsert to Qdrant (5-Layer Payload)
 
-Each chunk becomes one Qdrant `PointStruct` in the `documents` collection:
+Each chunk becomes one Qdrant `PointStruct` in the `documents` collection with a nested 5-layer payload:
 
 ```
 PointStruct(
     id=str(uuid.uuid4()),
     vector=embedding,               # 384-dim float list
     payload={
-        "document_id": document_id,  # content_hash[:16]
-        "chunk_index": i,            # 0-based
+        # Layer 1 — core (pipeline ingestion)
+        "core": {
+            "document_id": document_id,
+            "chunk_index": i,
+            "text": chunk_text,
+            "chunk_hash": sha256(chunk_text)[:16],
+        },
+        # Layer 2 — routing (agent pre-populated or enrichment)
+        "routing": {
+            "category": None,
+            "subcategory": None,
+            "language": None,
+            "source_type": "file",
+        },
+        # Layer 3 — document (enrichment doc-level)
+        "document": {},
+        # Layer 4 — chunk (enrichment per-chunk)
+        "chunk": {},
+        # Layer 5 — references (enrichment graph)
+        "references": {},
+        # Legacy flat fields (backward compatibility)
+        "document_id": document_id,
+        "chunk_index": i,
         "source_file": str(path),
         "file_type": subtype,
         "text": chunk_text,
@@ -197,7 +251,9 @@ PointStruct(
 )
 ```
 
-Points are upserted in a single batch call via `client.upsert(collection_name, points=points)`.
+Layers 1–2 are populated at ingestion (Layer 2 as placeholders). Layers 3–5 are filled by the **Enrichment Pipeline** (port 8004) via LangGraph. Legacy flat fields duplicate nested data for backward compatibility with existing filters.
+
+See [Payload Schema](../reference/payload-schema.md) for the full 5-layer specification with domain examples.
 
 ## Stage 6: Record in SQLite
 
@@ -422,6 +478,61 @@ Ingestion Pipeline (:8002)
 
 **Design decision:** The pipeline calls pytesseract directly (in-process) rather than routing through the Tesseract MCP server on port 8003. This avoids SSE serialization overhead (~30ms per page) for batch processing. The Tesseract MCP server exists for agent-facing ad-hoc OCR — when an LLM needs to extract text from a single image without running the full pipeline.
 
+## Post-Ingestion Enrichment (port 8004)
+
+After ingestion, the **Enrichment Pipeline** container can enrich Qdrant payloads with classification, references, and document metadata via LangGraph.
+
+### LangGraph Workflow
+
+```mermaid
+flowchart TD
+    Start(["enrich_document(document_id)"])
+    PreAnalysis["pre_analysis\nDecide strategy"]
+    Classify["classify_document\n1 LLM call"]
+    ExtractRefs["extract_references\n1 LLM call"]
+    MapRefs["map_references\n0 LLM"]
+    EnrichChunks["enrich_chunks\n0 LLM"]
+    Upsert["upsert_enriched\nQdrant upsert"]
+    RecordComp["record_completion\nSQLite tracking"]
+    Done(["Done"])
+
+    Start --> PreAnalysis
+
+    PreAnalysis -->|"skip"| Done
+    PreAnalysis -->|"basic"| Classify
+    PreAnalysis -->|"references_only"| ExtractRefs
+    PreAnalysis -->|"full"| Classify
+
+    Classify --> ExtractRefs
+    ExtractRefs --> MapRefs
+    MapRefs --> EnrichChunks
+    EnrichChunks --> Upsert
+    Upsert --> RecordComp
+    RecordComp --> Done
+```
+
+### Strategies
+
+| Strategy | LLM calls | When |
+|----------|-----------|------|
+| `skip` | 0 | Document too small (< 5000 chars) or agent already handled |
+| `basic` | 1 | Noisy OCR documents — classify only |
+| `references_only` | 1 | Agent pre-classified — extract references only |
+| `full` | 2 | High-quality text documents — classify + references |
+
+### What enrichment adds
+
+| Layer | Fields populated | Source |
+|-------|-----------------|--------|
+| `routing` | `category`, `subcategory`, `language` | LLM classification |
+| `document` | `title`, `doc_type`, `date`, `domain_specific` | LLM classification |
+| `chunk` | `section`, `chunk_type`, `summary` | Heuristics + text analysis |
+| `references` | `cites`, `cited_by`, `entities` | LLM reference extraction |
+
+The enrichment pipeline is **toggleable** via `knowledge/enrichment-config.md` (default `enabled: false`). Manual enrichment via `enrich_document` always works regardless of the toggle.
+
+See [Enrichment Pipeline MCP](../mcp-servers/enrichment-pipeline-mcp.md) for tool signatures and container config.
+
 ## Future Enhancements
 
 | Enhancement | Description | See |
@@ -437,6 +548,8 @@ Ingestion Pipeline (:8002)
 
 - [Qdrant Vector DB](qdrant-vector-db.md) — Collection schema and HNSW configuration
 - [Database](database.md) — Full SQLite schema (Wiki.js MCP + Ingestion)
-- [System Overview](system-overview.md) — 8-container topology
+- [System Overview](system-overview.md) — 5-container topology
+- [Payload Schema](../reference/payload-schema.md) — 5-layer Qdrant payload specification
+- [Enrichment Pipeline MCP](../mcp-servers/enrichment-pipeline-mcp.md) — Tool signatures and container config
 - [Tesseract OCR Research](../guides/tesseract-ocr-research.md) — OCR benchmarks and tradeoffs
 - [Ingestion Pipeline MCP](../mcp-servers/ingestion-pipeline-mcp.md) — Tool signatures and container config

@@ -1,8 +1,8 @@
-# Docker Operations (v3)
+# Docker Operations (v4)
 
 For stack start/stop/rebuild, see [Stack Lifecycle Guide](stack-lifecycle.md).
 
-Commands for building, testing, and managing the 8-container Docker stack.
+Commands for building, testing, and managing the 5-container Docker stack.
 
 ## Quick Reference
 
@@ -14,7 +14,7 @@ docker compose up -d
 docker compose ps
 
 # View logs for a service
-docker compose logs wiki-js-mcp
+docker compose logs qdrant-mcp
 docker compose logs qdrant-mcp
 
 # Stop everything
@@ -85,7 +85,7 @@ curl http://localhost:3000
 
 ```bash
 # Follow logs for a service
-docker compose logs -f wiki-js-mcp
+docker compose logs -f ingestion-pipeline
 
 # Last 50 lines
 docker compose logs --tail 50 qdrant-mcp
@@ -94,24 +94,21 @@ docker compose logs --tail 50 qdrant-mcp
 docker compose logs --tail 100
 ```
 
-## Seed Test Data
+## Inspect Databases
 
 ```bash
-# Seed structured docs pages into Wiki.js
-docker compose exec wiki-js-mcp python3 scripts/seed_wiki_docs.py
+# View ingestion SQLite database
+docker compose exec ingestion-pipeline sqlite3 /data/ingestion.db ".tables"
 
-# Generate E2E test fixtures
-docker compose run --rm \
-  -v ./tests/test-data:/data/test-data \
-  ingestion-pipeline \
-  python /data/test-data/generate_test_data.py
+# View enrichment SQLite database
+docker compose exec enrichment-pipeline sqlite3 /data/enrichment.db ".tables"
 ```
 
 ## Database Inspection
 
 ```bash
-# SQLite mappings database (wiki-js-mcp)
-docker compose exec wiki-js-mcp sqlite3 /data/wikijs_mappings.db
+# View ingestion SQLite database
+docker compose exec ingestion-pipeline sqlite3 /data/ingestion.db ".tables"
 
 # Qdrant collections (via REST)
 curl http://localhost:6334/collections

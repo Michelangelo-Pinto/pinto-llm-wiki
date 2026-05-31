@@ -1,8 +1,8 @@
 """File type detection for document ingestion pipeline.
 
 Classifies documents into: text_pdf, scanned_pdf, text_docx, mixed_docx,
-markdown, text, image. Uses file extension, MIME type, and content sampling
-via PyMuPDF for PDF classification.
+markdown, text, html, json, xml, epub, image. Uses file extension and
+content sampling via PyMuPDF for PDF classification.
 """
 
 import logging
@@ -28,6 +28,11 @@ EXTENSION_MAP = {
     ".bmp": "image",
     ".gif": "image",
     ".webp": "image",
+    ".html": "html",
+    ".htm": "html",
+    ".json": "json",
+    ".xml": "xml",
+    ".epub": "epub",
 }
 
 SUPPORTED_EXTENSIONS = set(EXTENSION_MAP.keys())

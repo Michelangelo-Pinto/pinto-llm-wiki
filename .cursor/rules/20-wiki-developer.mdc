@@ -18,6 +18,11 @@ Tool definiti in `tools.py`, registrati in `server.py` via `mcp.tool()(func)`.
 Tool definiti in `tools.py`, registrati in `server.py` via `mcp.tool()(func)`.
 7 tool: `ingest_detect_type`, `ingest_document`, `ingest_directory`, `ingest_get_status`, `ingest_delete_document`, `ingest_search_chunks`, `ingest_list_documents`.
 
+### Enrichment Pipeline (`mcp-servers/enrichment-pipeline/`)
+
+Tool definiti in `tools.py`, workflow LangGraph in `graph.py`, nodi in `nodes/`.
+4 tool: `enrich_get_config`, `enrich_set_config`, `enrich_document`, `enrich_get_status`.
+
 ### Tesseract MCP (`mcp-servers/tesseract-mcp/`)
 
 Tool definiti in `tools.py`, registrati in `server.py` via `mcp.tool()(func)`.

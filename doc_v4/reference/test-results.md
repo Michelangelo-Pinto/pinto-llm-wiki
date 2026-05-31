@@ -20,7 +20,7 @@
 
 All 60 fast-profile tests (Qdrant integration + E2E + performance) pass. The previously known failure `test_delete_nonexistent_collection` has been fixed — the delete function now uses idempotent semantics, returning `{"status": "not_found"}` for non-existent collections instead of an error.
 
-Stack and regression suites require `docker compose up -d` plus `--profile integration`. Run separately when the full 8-container stack is available.
+Stack and regression suites require `docker compose up -d` plus `--profile integration`. Run separately when the full 5-container stack is available.
 
 ## How to Reproduce
 

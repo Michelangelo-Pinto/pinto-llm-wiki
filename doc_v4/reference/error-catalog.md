@@ -1,6 +1,6 @@
 # Error Catalog v4
 
-Organized catalog of common errors across all 3 MCP servers in wiki-js-mcp v4. Each entry includes the typical error message, likely cause, and resolution.
+Organized catalog of common errors across all 4 MCP servers in wiki-js-mcp v4. Each entry includes the typical error message, likely cause, and resolution.
 
 > For operation-level troubleshooting (containers, Docker, SSE), see [Troubleshooting](../guides/troubleshooting.md).
 > For a compact view, see [Quick Reference](quick-reference.md).
@@ -44,7 +44,7 @@ Organized catalog of common errors across all 3 MCP servers in wiki-js-mcp v4. E
 
 | Error | Cause | Resolution |
 |-------|-------|------------|
-| `{"error": "Unsupported file type: .xyz"}` | File extension not in supported list | Supported: `.pdf`, `.docx`, `.md`, `.markdown`, `.txt`, `.rst`, `.png`, `.jpg`, `.tiff`, `.bmp`, `.gif`, `.webp` |
+| `{"error": "Unsupported file type: .xyz"}` | File extension not in supported list | Supported: `.pdf`, `.docx`, `.md`, `.markdown`, `.txt`, `.rst`, `.html`, `.htm`, `.json`, `.xml`, `.epub`, `.png`, `.jpg`, `.tiff`, `.bmp`, `.gif`, `.webp` |
 | `{"error": "PDF detection failed"}` | Corrupt PDF or PyMuPDF error | Check PDF integrity. Try opening with a PDF reader |
 
 ### Extraction
@@ -91,6 +91,24 @@ Organized catalog of common errors across all 3 MCP servers in wiki-js-mcp v4. E
 | `{"error": "OCR processing failed"}` | Tesseract binary error or OOM | Check `docker compose logs tesseract-mcp` |
 | `{"error": "Image decoding failed"}` | Corrupt image or unsupported format | Verify image integrity. Supported: PNG, JPG, TIFF, BMP |
 
+## Enrichment Pipeline Errors (port 8004)
+
+### Configuration
+
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| `{"error": "Config file not found: ..."}` | `enrichment-config.md` missing or wrong path | Verify `knowledge/enrichment-config.md` exists. Check `ENRICHMENT_CONFIG_PATH` env var |
+| `{"error": "Config file missing YAML frontmatter"}` | Config file has no `---` frontmatter block | Ensure the file starts with `---` delimited YAML frontmatter |
+
+### Execution
+
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| `{"error": "No chunks found for document_id: ..."}` | Document not ingested yet or `document_id` wrong | Run `ingest_get_status(document_id)` first to verify ingestion completed |
+| `{"error": "OPENAI_API_KEY not set"}` | Missing API key for LLM calls | Set `OPENAI_API_KEY` in `.env`. Without it, enrichment falls back to heuristics |
+| `{"error": "Classification failed: ..."}` | OpenAI API error or invalid response | Check API key validity, rate limits. Heuristic fallback is used automatically |
+| `{"error": "Enrichment failed for ...: ..."}` | Generic enrichment failure | Check `enrich_get_status(document_id)` for detailed step logs |
+
 ## Cross-Cutting Errors
 
 ### Docker / Network
@@ -113,7 +131,7 @@ Organized catalog of common errors across all 3 MCP servers in wiki-js-mcp v4. E
 
 | Error | Cause | Resolution |
 |-------|-------|------------|
-| Container OOM-killed (exit code 137) | Insufficient RAM | At least 4 GB RAM recommended for 4-container stack |
+| Container OOM-killed (exit code 137) | Insufficient RAM | At least 4 GB RAM recommended for 5-container stack |
 | Tesseract "Killed" during OCR | Large PDF exceeds memory | Process PDFs in smaller batches |
 | Embedding model "CUDA out of memory" | GPU memory issue | Model is CPU-only by default. No GPU needed for `all-MiniLM-L6-v2` |
 

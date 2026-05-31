@@ -1,12 +1,12 @@
 # Architecture
 
-v3 distributed architecture with Qdrant vector DB, Tesseract OCR, and multi-MCP servers.
+v4 distributed architecture with Qdrant vector DB, Tesseract OCR, LangGraph enrichment, and multi-MCP servers.
 
 ## Quick Navigation
 
 | Document | Description | Read when |
 |----------|-------------|-----------|
-| [System Overview](system-overview.md) | 8 containers, data flow, startup order, volumes, networks | Understanding the full stack |
+| [System Overview](system-overview.md) | 5 containers, data flow, startup order, volumes, networks | Understanding the full stack |
 | [Data Flow](data-flow.md) | Sequence diagrams for all major operations: semantic query, page CRUD, health, affected pages, ingestion, import/export | Understanding request lifecycles |
 | [Multi-MCP Architecture](multi-mcp-architecture.md) | Service mesh design, communication patterns, rationale | Understanding why 4 servers instead of 1 |
 | [MCP Server Registry](mcp-server-registry.md) | Per-server catalog: containers, ports, dependencies | Looking up a specific server's config |
@@ -28,12 +28,12 @@ v3 distributed architecture with Qdrant vector DB, Tesseract OCR, and multi-MCP 
 
 ## Agent Reading Order
 
-For an LLM agent to understand the v3 system:
+For an LLM agent to understand the v4 system:
 
-1. **[System Overview](system-overview.md)** — The 8-container stack, data flow diagrams, and startup order.
+1. **[System Overview](system-overview.md)** — The 5-container stack, data flow diagrams, and startup order.
 2. **[Multi-MCP Architecture](multi-mcp-architecture.md)** — Why 4 independent servers, how they communicate.
 3. **[MCP Server Registry](mcp-server-registry.md)** — Which server does what, which ports, what dependencies.
-4. **[Qdrant Vector DB](qdrant-vector-db.md)** — How semantic search works in v3.
+4. **[Qdrant Vector DB](qdrant-vector-db.md)** — How semantic search works in v4.
 5. **[Ingestion Pipeline Design](ingestion-pipeline-design.md)** — How documents are processed end-to-end.
 6. **[Database](database.md)** — What's stored in SQLite vs Qdrant.
 

@@ -30,34 +30,43 @@ Grep in knowledge/ per topic esistente → Read dei file rilevanti
 ### 2. Document Processing (file esterni → KB)
 
 ```
-ingest_document(file_path="/data/shared/doc.pdf") → document_id
+Spawn PreIngestionAnalyzer subagent → analizza file in to_ingest/
+→ ingest_detect_type() (se binario) o Read (se testuale)
+→ ingest_document(file_path, chunk_size=..., chunk_overlap=...) con parametri scelti
 → ingest_get_status(document_id) → verifica chunks creati
-→ ingest_search_chunks(query="topic", limit=5) → contenuto rilevante
-→ Scrivi file MD in knowledge/ingested/YYYY-MM-DD-slug/doc.md con frontmatter
-     source_type: file
-     source_file: "doc.pdf"
-     source_name: "Nome descrittivo"
-     fetched_at: "YYYY-MM-DD"
-     category: ingested
+→ Pre-popola payload routing (layer 2) via qdrant_scroll + qdrant_upsert_chunks
+→ enrich_get_config() → se enabled: enrich_document(document_id)
+→ Se enrichment completato: spawn EnrichmentReviewer → scrivi metadata.md
+→ Scrivi file MD in knowledge/ingested/YYYY-MM-DD-slug/ con frontmatter
 → Aggiorna knowledge/ingested/index.md
-→ Se rilevante per altre categorie, crea anche un summary MD nella categoria appropriata
 ```
+
+**Classificazione pre-ingestion (Cursor agent, NON LangGraph):**
+```
+.md .txt .json .html .xml .csv → Read diretto, subagent analizza, poi ingest opzionale
+.pdf .docx .epub .png .jpg     → ingest_detect_type() → ingest_document()
+```
+
+Vedi [Pre-Ingestion Analysis](../doc_v4/guides/pre-ingestion-analysis.md).
 
 **Attribuzione fonte OBBLIGATORIA**: il file MD creato deve includere nel frontmatter: `source_type`, `source_file`, `source_name`, `fetched_at`. Vedi `.cursor/rules/35-web-ingestion.mdc` per il formato completo.
 
 ### 3. Query (ricerca semantica + sintesi)
 
 ```
-qdrant_search(collection="documents", query_text="domanda in linguaggio naturale", limit=10)
+Per query complesse: spawn QueryPlanner subagent → RetrievalPlan
+→ qdrant_search (pass 1, senza filtri, limit=10)
+→ qdrant_search (pass 2, con filtri routing.category/language)
+→ Se riferimenti espliciti: qdrant_search con filtri references.cites.id
+→ Espandi documenti referenziati via qdrant_scroll
+→ Grep fallback se score < 0.4
 → Per ogni risultato: Read del file MD corrispondente
 → Sintesi con citazioni (link ai file MD)
-→ Opzionale: scrivi risposta in knowledge/queries/YYYY-MM-DD-query.md
 ```
 
-**Priorita' di ricerca**:
-1. `qdrant_search` per ricerca semantica (vettori)
-2. `Grep` in `knowledge/` per keyword esatte
-3. Navigazione via `index.md` per esplorazione strutturata
+**Regola:** MAI rispondere dopo una sola qdrant_search su query complesse. Minimo 2 passate.
+
+Vedi [Multi-Hop Retrieval](../doc_v4/guides/multi-hop-retrieval.md) e [Collections Routing](../knowledge/collections-routing.md).
 
 ### 4. Lint (health check + fix)
 
@@ -134,11 +143,34 @@ Browser: naviga URL → estrai e salva in agent_tmp/artifacts/
 - `* * *` per horizontal rules invece di `---` (conflitto frontmatter)
 - Gerarchia directory: `category/subcategory/`, max depth 4
 
+## Subagents
+
+Vedi [Subagents](../doc_v4/guides/subagents.md) per dettagli completi.
+
+| Subagent | Trigger | Output |
+|----------|---------|--------|
+| **PreIngestionAnalyzer** | File in `to_ingest/` | chunk_size, collection, pre_classification |
+| **EnrichmentReviewer** | Dopo `enrich_get_status` → completed | `metadata.md` in knowledge/ingested/ |
+| **QueryPlanner** | Query complessa multi-dominio | RetrievalPlan (sequenza qdrant_search) |
+| **LintAuditor** | On-demand health check | LintReport |
+
+## Enrichment container (porta 8004)
+
+```
+enrich_get_config() → verifica enabled (default: false)
+enrich_set_config(key="enabled", value="true") → attiva enrichment automatico
+enrich_document(document_id) → lancia LangGraph enrichment (sempre disponibile manualmente)
+enrich_get_status(document_id) → log strutturati JSON
+```
+
+Config: `knowledge/enrichment-config.md` (default `enabled: false`).
+
 ## Routing per porta
 
 - `qdrant_*` → porta **8001**
 - `ingest_*` → porta **8002**
 - `ocr_*` → porta **8003**
+- `enrich_*` → porta **8004**
 
 Errori comuni: vedi [Error Catalog](../doc_v4/reference/error-catalog.md).
 

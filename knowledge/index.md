@@ -31,9 +31,11 @@ Mappa delle categorie e scope. Ogni sottodirectory contiene un `index.md` con l'
 - **Path**: [ingested/](ingested/index.md)
 - **Qdrant collection**: `documents`, filter `category=ingested`
 
-## Come usare questa knowledge base
+## 4. Come usare questa knowledge base
 
-1. **Ricerca semantica**: `qdrant_search(collection="documents", query_text="...")` per trovare contenuti per similarità
+1. **Ricerca semantica**: `qdrant_search(collection="documents", query_text="...")` — vedi [Multi-Hop Retrieval](../doc_v4/guides/multi-hop-retrieval.md)
 2. **Ricerca keyword**: `Grep` nella directory `knowledge/` per match esatti
 3. **Navigazione**: Segui i link negli `index.md` di ogni categoria
-4. **Nuovo contenuto**: Crea file `.md` nella categoria appropriata, aggiorna l'`index.md` corrispondente
+4. **Routing/filtri**: [collections-routing.md](collections-routing.md)
+5. **Enrichment config**: [enrichment-config.md](enrichment-config.md) (default OFF)
+6. **Nuovo contenuto**: Crea file `.md` nella categoria appropriata, aggiorna l'`index.md` corrispondente

@@ -1,14 +1,15 @@
 # MCP Server Documentation v4
 
-Three independent MCP servers forming the wiki-js-mcp v4 ecosystem. Wiki.js MCP was removed in v4.
+Four independent MCP servers forming the wiki-js-mcp v4 ecosystem. Wiki.js MCP was removed in v4.
 
 ## Server Overview
 
 | Server | Document | Tools | Delegates To |
 |--------|----------|-------|--------------|
 | Qdrant MCP | [qdrant-mcp.md](qdrant-mcp.md) | 8 | Qdrant DB |
-| Tesseract MCP | [tesseract-mcp.md](tesseract-mcp.md) | 7 | — |
 | Ingestion Pipeline | [ingestion-pipeline-mcp.md](ingestion-pipeline-mcp.md) | 7 | Qdrant DB, Tesseract |
+| Tesseract MCP | [tesseract-mcp.md](tesseract-mcp.md) | 7 | — |
+| Enrichment Pipeline | [enrichment-pipeline-mcp.md](enrichment-pipeline-mcp.md) | 4 | Qdrant DB, OpenAI |
 
 ## Communication Map
 
@@ -17,6 +18,8 @@ flowchart TD
     QMCP[Qdrant MCP] -->|"qdrant-client"| Qdrant[(Qdrant DB)]
     IMCP[Ingestion Pipeline] -->|"qdrant-client"| Qdrant
     IMCP -->|"pytesseract"| Tesseract[Tesseract binary]
+    EMCP[Enrichment Pipeline] -->|"qdrant-client"| Qdrant
+    EMCP -->|"OpenAI API"| LLM[LLM]
 ```
 
 ## Design Philosophy
@@ -29,5 +32,5 @@ flowchart TD
 ## Related Sections
 
 - [Architecture](../architecture/index.md) — System design and server registry
-- [Tool Catalog](../reference/tool-catalog.md) — All 22 tools with full signatures
+- [Tool Catalog](../reference/tool-catalog.md) — All 26 tools with full signatures
 - [Guides](../guides/index.md) — Workflows and operations

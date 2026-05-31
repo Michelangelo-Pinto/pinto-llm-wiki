@@ -5,7 +5,7 @@ alwaysApply: true
 
 # wiki-js-mcp v4 — Panoramica
 
-**3 server MCP, 22 tool totali, transport SSE.**
+**4 server MCP, 26 tool totali, transport SSE.**
 
 ## Server, porte, prefissi
 
@@ -14,13 +14,15 @@ alwaysApply: true
 | Qdrant MCP | `wikijs_qdrant_mcp` | 8001 | `qdrant_*` | 8 |
 | Ingestion Pipeline | `wikijs_ingestion` | 8002 | `ingest_*` | 7 |
 | Tesseract MCP | `wikijs_tesseract_mcp` | 8003 | `ocr_*` | 7 |
+| Enrichment Pipeline | `wikijs_enrichment` | 8004 | `enrich_*` | 4 |
 
-Tutti su path `/sse`. Stack: 4 container avviati, 4 a regime.
+Tutti su path `/sse`. Stack: 5 container (qdrant-db + 4 MCP server).
 
 ## Mappa repo
 
-- `mcp-servers/` — codice 3 server (qdrant-mcp, ingestion-pipeline, tesseract-mcp)
+- `mcp-servers/` — codice 4 server (qdrant-mcp, ingestion-pipeline, tesseract-mcp, enrichment-pipeline)
 - `knowledge/` — knowledge base file-system (MD organizzato per categorie/sottocategorie, con `index.md` per routing)
+- `to_ingest/` — bind mount per file da ingerire (`/data/shared` nei container)
 - `doc_v4/` — documentazione fonte (tool catalog, guide, reference)
 - `tests/` — unit, integration, smoke, e2e, performance
 - `plans/` — storico; `plans/v4-migration/` = archivio v3; `plans/llm-wiki/AGENTS.md` = v2 obsoleto
@@ -28,9 +30,9 @@ Tutti su path `/sse`. Stack: 4 container avviati, 4 a regime.
 
 ## Fatti essenziali
 
-- **I nomi tool sono sempre prefissati**: `qdrant_*`, `ingest_*`, `ocr_*`
+- **I nomi tool sono sempre prefissati**: `qdrant_*`, `ingest_*`, `ocr_*`, `enrich_*`
 - **Knowledge base = filesystem**: contenuti in `knowledge/` come `.md`. Solo `index.md` committati in git. Contenuti generati esclusi via `.gitignore`.
-- **Volume `/data/shared`**: montato ro su qdrant-mcp, ingestion-pipeline, tesseract-mcp. Per spostare file: `docker compose cp`
+- **`to_ingest/`**: bind mount su `/data/shared` nei container MCP
 - **Qdrant**: collezione `documents`, vector_size=384, distanza Cosine, modello `all-MiniLM-L6-v2`
 - **log.md** append-only; **index.md** (per categoria) aggiornato a ogni ingest
 - **Contratto JSON**: tutti i tool ritornano `json.dumps(...)`; errori = `{"error": "..."}`

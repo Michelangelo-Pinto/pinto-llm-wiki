@@ -1,12 +1,12 @@
 # Improvements
 
-Future enhancements and optimization opportunities for wiki-js-mcp v3.
+Future enhancements and optimization opportunities for wiki-js-mcp v4.
 
 ## Short-term (quick wins)
 
 | Improvement | Effort | Impact |
 |-------------|--------|--------|
-| **SSE smoke tests for all 65 tools** | Medium | Validate full tool surface via SSE (current tests use direct imports) | ✅ Completed in v3 |
+| **SSE smoke tests for all 26 tools** | Medium | Validate full tool surface via SSE (current tests use direct imports) | ✅ Completed in v3 |
 | **Unit test suite** | Large | ~80 unit tests as outlined in test strategy; enables faster iteration | ✅ Completed in v3 (~109 tests) |
 | **CI pipeline (GitHub Actions)** | Small | Automated test runs on PRs (workflow exists in `.github/workflows/`) | ✅ Completed in v3 |
 | **SQLite indexes on BacklinkIndex** | Small | Faster BFS/graph queries at 1000+ pages | ✅ Completed in v3 |

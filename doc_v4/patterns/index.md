@@ -1,6 +1,6 @@
 # Patterns
 
-Code patterns and design conventions across the v3 multi-MCP ecosystem.
+Code patterns and design conventions across the v4 multi-MCP ecosystem.
 
 ## Quick Navigation
 
@@ -22,7 +22,7 @@ Code patterns and design conventions across the v3 multi-MCP ecosystem.
 
 ### Agent-to-Server: SSE
 
-All 4 MCP servers expose SSE transport for Cursor/Claude integration on ports 8000-8003.
+All 4 MCP servers expose SSE transport for Cursor/Claude integration on ports 8001-8004.
 
 ### Server-to-Backend: Direct Libraries
 
@@ -44,4 +44,4 @@ Tests import tool functions directly (not via SSE) for determinism and speed. SS
 - [Architecture](../architecture/index.md) — System design and server registry
 - [Features](../features/index.md) — Feature catalog by priority
 - [MCP Servers](../mcp-servers/index.md) — Per-server tool catalogs
-- [Tool Catalog](../reference/tool-catalog.md) — All ~65 tools with signatures
+- [Tool Catalog](../reference/tool-catalog.md) — All 26 tools with signatures

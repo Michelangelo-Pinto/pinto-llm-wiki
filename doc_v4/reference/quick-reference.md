@@ -9,6 +9,7 @@ Single-page cheat sheet for LLM agents operating against wiki-js-mcp v4.
 | **Qdrant MCP** | `wikijs_qdrant_mcp` | 8001 | 8 | Qdrant REST :6334 |
 | **Ingestion Pipeline** | `wikijs_ingestion` | 8002 | 7 | Qdrant + pytesseract |
 | **Tesseract MCP** | `wikijs_tesseract_mcp` | 8003 | 7 | Tesseract binary |
+| **Enrichment Pipeline** | `wikijs_enrichment` | 8004 | 4 | Qdrant + LangGraph + OpenAI |
 
 ## Knowledge Base
 
@@ -53,11 +54,23 @@ knowledge/
 
 `ocr_get_languages()` · `ocr_detect_document_type(input_path)` · `ocr_extract_text(input_path, language="eng+ita", output_format?, page_range?, dpi=300, psm=3)` · `ocr_extract_hocr(input_path, language?, page_range?)` · `ocr_get_confidence(input_path, language?)` · `ocr_process_document(input_path, language?, auto_detect_type=True, preprocess=True, dpi=300)` · `ocr_preprocess_and_extract(input_path, language?, preprocess_steps?)`
 
+### Enrichment Pipeline (4 tools, port 8004)
+
+`enrich_get_config()` · `enrich_set_config(key, value)` · `enrich_document(document_id, collection?)` · `enrich_get_status(document_id?)`
+
+Config: `knowledge/enrichment-config.md` (default `enabled: false`).
+
+### Supported Ingestion Formats
+
+PDF, DOCX, MD, TXT, HTML, JSON, XML, EPUB, PNG, JPG, TIFF, BMP, GIF, WEBP
+
 ## Qdrant Collections
 
 | Collection | Vector Size | Distance | Purpose | Key Payload Fields |
 |------------|------------|----------|---------|-------------------|
-| `documents` | 384 | Cosine | Ingested document chunks | `document_id`, `chunk_index`, `source_file`, `file_type`, `text`, `content_hash` |
+| `documents` | 384 | Cosine | Ingested document chunks | 5-layer: `core`, `routing`, `document`, `chunk`, `references` |
+
+See [Payload Schema](payload-schema.md). Legacy flat fields (`document_id`, `text`) retained for compatibility.
 
 Model: `all-MiniLM-L6-v2` (384 dimensions, ~80 MB, pre-downloaded in images).
 
@@ -76,7 +89,8 @@ Model: `all-MiniLM-L6-v2` (384 dimensions, ~80 MB, pre-downloaded in images).
   "mcpServers": {
     "qdrant":     { "type": "sse", "url": "http://localhost:8001/sse" },
     "ingestion":  { "type": "sse", "url": "http://localhost:8002/sse" },
-    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" }
+    "tesseract":  { "type": "sse", "url": "http://localhost:8003/sse" },
+    "enrichment": { "type": "sse", "url": "http://localhost:8004/sse" }
   }
 }
 ```
@@ -125,7 +139,7 @@ Model: `all-MiniLM-L6-v2` (384 dimensions, ~80 MB, pre-downloaded in images).
 ## Docker Commands
 
 ```bash
-# Start full stack (4 containers)
+# Start full stack (5 containers)
 docker compose up -d
 
 # View status
@@ -153,6 +167,7 @@ docker compose --profile integration run --rm test-runner pytest tests/integrati
 | Qdrant MCP | 8001 | `http://localhost:8001/sse` | SSE |
 | Ingestion Pipeline | 8002 | `http://localhost:8002/sse` | SSE |
 | Tesseract MCP | 8003 | `http://localhost:8003/sse` | SSE |
+| Enrichment Pipeline | 8004 | `http://localhost:8004/sse` | SSE |
 | Qdrant REST | 6334 | `http://localhost:6334` | REST |
 | Qdrant gRPC | 6333 | `localhost:6333` | gRPC |
 
@@ -182,7 +197,10 @@ docker compose --profile integration run --rm test-runner pytest tests/integrati
 
 ## Related Documents
 
-- [System Overview](architecture/system-overview.md) — 4-container stack and data flow
+- [Payload Schema](reference/payload-schema.md) — 5-layer Qdrant payload
+- [Multi-Hop Retrieval](guides/multi-hop-retrieval.md) — Retrieval strategy
+- [Pre-Ingestion Analysis](guides/pre-ingestion-analysis.md) — Pre-ingestion (Cursor agent)
+- [Subagents](guides/subagents.md) — 4 subagent definitions
 - [Tool Catalog](reference/tool-catalog.md) — Full tool signatures with all parameters
 - [LLM Wiki Workflows](guides/llm-wiki-workflows.md) — Detailed workflow patterns
 - [Error Catalog](reference/error-catalog.md) — Full error catalog with solutions

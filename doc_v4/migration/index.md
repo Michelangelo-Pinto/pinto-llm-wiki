@@ -90,7 +90,7 @@ docker compose exec -T wiki-js-mcp python3 /app/scripts/test_all_tools.py
 ### v2
 
 ```bash
-docker compose up -d    # 4 containers
+docker compose up -d    # 5 containers
 ```
 
 ### v3
@@ -330,7 +330,7 @@ docker compose up -d
 5. Verify rollback:
 
 ```bash
-docker compose ps  # 4 containers (db, wiki, setup, wiki-js-mcp)
+docker compose ps  # 5 containers (qdrant-db + 4 MCP servers)
 curl http://localhost:8000/sse
 ```
 

@@ -1,4 +1,15 @@
-"""Lazy-loaded SentenceTransformer embedding model for the ingestion pipeline."""
+"""Lazy-loaded SentenceTransformer embedding model for the ingestion pipeline.
+
+Design decisions:
+- all-MiniLM-L6-v2: 384-dim embeddings, ~80 MB, fast inference, pre-downloaded
+  in Docker image to avoid cold-start network downloads on first request
+- Lazy singleton pattern: model is loaded once on first call and shared across
+  all requests. Global _model variable avoids re-loading the 80 MB model per call.
+- L2 normalization (normalize_embeddings=True): ensures cosine similarity in Qdrant
+  is equivalent to dot product, which is faster in HNSW index
+- Single batch encoding: SentenceTransformers internally batches by token count,
+  so passing the full chunk list is optimal without manual mini-batching
+"""
 
 import logging
 from typing import List

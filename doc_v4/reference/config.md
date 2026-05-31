@@ -1,47 +1,26 @@
 # Configuration Reference
 
-Environment variables and Docker profiles for wiki-js-mcp v3.
+Environment variables and Docker profiles for wiki-js-mcp v4.
 
 ## Environment Variables
-
-### PostgreSQL (Wiki.js backend)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `POSTGRES_DB` | `wikijs` | PostgreSQL database name |
-| `POSTGRES_USER` | `wikijs` | PostgreSQL user |
-| `POSTGRES_PASSWORD` | *(required)* | PostgreSQL password |
 
 ### Ports
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WIKIJS_PORT` | `3000` | Wiki.js web UI |
-| `MCP_PORT` | `8000` | Wiki.js MCP server |
 | `QDRANT_GRPC_PORT` | `6333` | Qdrant gRPC API |
 | `QDRANT_REST_PORT` | `6334` | Qdrant REST API |
 | `QDRANT_MCP_PORT` | `8001` | Qdrant MCP server |
 | `INGESTION_MCP_PORT` | `8002` | Ingestion Pipeline MCP |
 | `TESSERACT_MCP_PORT` | `8003` | Tesseract MCP server |
+| `ENRICHMENT_MCP_PORT` | `8004` | Enrichment Pipeline MCP |
 
 ### Qdrant
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `QDRANT_URL` | `http://qdrant-db:6334` | Qdrant REST endpoint (used by wiki-js-mcp, qdrant-mcp, ingestion-pipeline; NOT by tesseract-mcp) |
-| `QDRANT_COLLECTION_WIKI_PAGES` | `wiki_pages` | Collection for wiki page vectors |
+| `QDRANT_URL` | `http://qdrant-db:6334` | Qdrant REST endpoint (used by qdrant-mcp, ingestion-pipeline, enrichment-pipeline) |
 | `QDRANT_COLLECTION_DOCUMENTS` | `documents` | Collection for ingested documents |
-
-### Wiki.js Authentication
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WIKIJS_SITE_URL` | `http://localhost:3000` | Wiki.js site URL (auto-setup) |
-| `WIKIJS_API_URL` | `http://wiki:3000` | Wiki.js API URL (inside compose network) |
-| `WIKIJS_USERNAME` | *(empty)* | Admin username (set in `.env` for MCP authentication) |
-| `WIKIJS_PASSWORD` | *(empty)* | Admin password (set in `.env` for MCP authentication) |
-| `WIKIJS_API_KEY` | *(empty)* | Wiki.js API key (alternative to username/password) |
-| `WIKIJS_TOKEN` | *(empty)* | JWT token (auto-generated after authentication) |
 
 ### MCP Server (internal)
 
@@ -50,10 +29,16 @@ Environment variables and Docker profiles for wiki-js-mcp v3.
 | `MCP_HOST` | `0.0.0.0` | MCP server bind address |
 | `MCP_TRANSPORT` | `sse` | Transport protocol (SSE) |
 | `LOG_LEVEL` | `INFO` | Logging level |
-| `LOG_FILE` | `/logs/wikijs_mcp.log` | Log file path (wiki-js-mcp) |
-| `WIKIJS_MCP_DB` | `/data/wikijs_mappings.db` | SQLite database path (wiki-js-mcp) |
 | `INGESTION_DB` | `/data/ingestion.db` | SQLite database path (ingestion-pipeline) |
+| `ENRICHMENT_DB` | `/data/enrichment.db` | SQLite database path (enrichment-pipeline) |
+| `ENRICHMENT_CONFIG_PATH` | `/app/knowledge/enrichment-config.md` | Enrichment config file path |
 | `TESSDATA_PREFIX` | `/usr/share/tesseract-ocr/5/tessdata` | Tesseract language data path |
+
+### Enrichment Pipeline
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENAI_API_KEY` | *(optional)* | OpenAI API key for LLM classification and reference extraction. Without it, enrichment uses heuristic fallbacks |
 
 ### Test Runner (set in docker-compose service)
 
@@ -63,34 +48,39 @@ Environment variables and Docker profiles for wiki-js-mcp v3.
 | `QDRANT_MCP_URL` | `http://qdrant-mcp:8001` | Qdrant MCP server URL |
 | `INGESTION_MCP_URL` | `http://ingestion-pipeline:8002` | Ingestion MCP URL |
 | `TESSERACT_MCP_URL` | `http://tesseract-mcp:8003` | Tesseract MCP URL |
-| `WIKIJS_MCP_URL` | `http://wiki-js-mcp:8000` | Wiki.js MCP URL |
-| `WIKIJS_API_URL` | `http://wiki:3000` | Wiki.js API URL |
+| `ENRICHMENT_MCP_URL` | `http://enrichment-pipeline:8004` | Enrichment MCP URL |
 
 ## Docker Compose Profiles
 
 ### Default services (always running)
 
 ```
-db → wiki → setup → wiki-js-mcp
-                      qdrant-db → qdrant-mcp
-                                → ingestion-pipeline
-                      tesseract-mcp
+qdrant-db → qdrant-mcp
+          → ingestion-pipeline
+          → enrichment-pipeline
+tesseract-mcp (independent)
 ```
 
 ### `test` profile
 
-Adds `test-runner` with only `qdrant-db` dependency. Used for fast Qdrant/E2E/performance tests.
+Adds `test-runner` container. Runs fast tests (Qdrant integration + E2E + performance) against only `qdrant-db`:
 
 ```bash
-docker compose --profile test run --rm test-runner pytest tests/ -v
+docker compose --profile test run --rm test-runner
 ```
 
 ### `integration` profile
 
-Same `test-runner` service, but intended to run against the full stack (start `docker compose up -d` first).
+Adds `test-runner` container. Runs full-stack integration tests against all 5 containers:
 
 ```bash
-docker compose up -d
 docker compose --profile integration run --rm test-runner \
-  pytest tests/integration/stack/ tests/regression/ -v
+  pytest tests/integration/stack/ -v
 ```
+
+## Related Documents
+
+- [Quickstart](../guides/quickstart.md) — First-time setup
+- [Stack Lifecycle](../guides/stack-lifecycle.md) — Build, start, stop commands
+- [Enrichment Config](../../knowledge/enrichment-config.md) — Enrichment toggle and LLM parameters
+- [Tool Catalog](tool-catalog.md) — All 26 tools with signatures

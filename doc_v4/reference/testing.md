@@ -1,6 +1,6 @@
 # Testing Guide
 
-How and what we test across the wiki-js-mcp v3 ecosystem.
+How and what we test across the wiki-js-mcp v4 ecosystem.
 
 ## Test Pyramid
 
@@ -65,7 +65,7 @@ docker compose --profile test run --rm test-runner pytest tests/ -v -m "integrat
 
 ### `integration` profile — Full stack
 
-For stack integration and regression tests. Requires the entire 8-container stack.
+For stack integration and regression tests. Requires the entire 5-container stack.
 
 ```bash
 # Start full stack first
@@ -152,7 +152,7 @@ docker compose --profile test run --rm test-runner pytest tests/e2e/ -v -m e2e
 **Purpose:** Validate that every MCP tool is discoverable and callable via the real SSE transport (HTTP), complementing integration tests that import tools directly. Ensures the SSE layer that Cursor IDE uses is functional.
 
 **What's tested:**
-- Tool discovery: all 65 tools across 4 servers are listed by `tools/list`
+- Tool discovery: all 26 tools across 4 servers are listed by `tools/list`
 - Basic invocation: parameter-less and simple-parameter tools return valid JSON without crashing
 - Tools requiring real data (page IDs, file paths) are tested for discovery only
 
@@ -182,7 +182,7 @@ docker compose --profile test run --rm test-runner pytest tests/performance/ -v 
 
 ### Stack Integration (`tests/integration/stack/`)
 
-**Purpose:** Verify cross-service communication in the full 8-container stack.
+**Purpose:** Verify cross-service communication in the full 5-container stack.
 
 **What's tested:**
 - TCP connectivity to all 6 services
@@ -245,7 +245,7 @@ Runs on every push and pull request to `main`. Requires only `qdrant-db` (profil
 
 ### `stack-tests` (full-stack, ~5 min)
 
-Runs on push to `main` and manual dispatch only. Requires the full 8-container stack (profile `integration`).
+Runs on push to `main` and manual dispatch only. Requires the full 5-container stack (profile `integration`).
 
 - Stack integration tests (~10–15 tests)
 - Wiki regression tests (~10 tests)

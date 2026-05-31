@@ -1,7 +1,7 @@
 services:
   # ------------------------------------------------------------------
-  # v4 — 4-container stack
-  # 3 MCP servers (Qdrant, Ingestion, Tesseract) + Qdrant vector DB
+  # v4 — 5-container stack
+  # 4 MCP servers (Qdrant, Ingestion, Tesseract, Enrichment) + Qdrant DB
   # Wiki.js and PostgreSQL removed in v4.
   # ------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ services:
       MCP_PORT: 8001
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
-      - shared_data:/data/shared:ro
+      - ./to_ingest:/data/shared:ro
     networks:
       - wikijs-net
     healthcheck:
@@ -85,7 +85,7 @@ services:
       MCP_PORT: 8002
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
-      - shared_data:/data/shared:ro
+      - ./to_ingest:/data/shared:ro
       - ingestion_data:/data
     networks:
       - wikijs-net
@@ -116,7 +116,7 @@ services:
       TESSDATA_PREFIX: /usr/share/tesseract-ocr/5/tessdata
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
-      - shared_data:/data/shared:ro
+      - ./to_ingest:/data/shared:ro
     networks:
       - wikijs-net
     healthcheck:
@@ -125,6 +125,47 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # Enrichment Pipeline MCP server — post-ingestion payload enrichment via LangGraph.
+  # Classifies documents, extracts references, enriches Qdrant payloads (toggleable).
+  enrichment-pipeline:
+    build:
+      context: ./mcp-servers/enrichment-pipeline
+      dockerfile: Dockerfile
+    image: wiki-js-enrichment-pipeline:latest
+    container_name: wikijs_enrichment
+    depends_on:
+      qdrant-db:
+        condition: service_healthy
+      ingestion-pipeline:
+        condition: service_started
+    ports:
+      - "${ENRICHMENT_MCP_PORT:-8004}:8004"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant-db:6334}
+      QDRANT_COLLECTION_DOCUMENTS: ${QDRANT_COLLECTION_DOCUMENTS:-documents}
+      ENRICHMENT_DB: /data/enrichment.db
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8004
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ENRICHMENT_CONFIG_PATH: /app/knowledge/enrichment-config.md
+    volumes:
+      - ./to_ingest:/data/shared:ro
+      - ingestion_data:/data/ingestion:ro
+      - enrichment_data:/data
+      - ./knowledge:/app/knowledge:rw
+    networks:
+      - wikijs-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8004' 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Test runner service for E2E tests and performance benchmarks.
   # Profile "test": runs only against qdrant-db (fast, for Qdrant/E2E/perf tests).
@@ -144,6 +185,7 @@ services:
       QDRANT_MCP_URL: ${QDRANT_MCP_URL:-http://qdrant-mcp:8001}
       INGESTION_MCP_URL: ${INGESTION_MCP_URL:-http://ingestion-pipeline:8002}
       TESSERACT_MCP_URL: ${TESSERACT_MCP_URL:-http://tesseract-mcp:8003}
+      ENRICHMENT_MCP_URL: ${ENRICHMENT_MCP_URL:-http://enrichment-pipeline:8004}
     volumes:
       - ./tests:/app/tests:ro
       - ./mcp-servers/qdrant-mcp/src:/app/qdrant_mcp:ro
@@ -160,5 +202,5 @@ networks:
 volumes:
   qdrant_data:
   qdrant_snapshots:
-  shared_data:
   ingestion_data:
+  enrichment_data:

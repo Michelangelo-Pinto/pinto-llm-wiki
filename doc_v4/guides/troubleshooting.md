@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Common operational issues in wiki-js-mcp v3 and how to resolve them.
+Common operational issues in wiki-js-mcp v4 and how to resolve them.
 
 > For tool-specific errors (authentication, Qdrant, ingestion), see [Error Catalog](../reference/error-catalog.md).
 
@@ -20,9 +20,8 @@ docker compose ps
    docker compose logs <service-name> --tail 50
    ```
 2. Common causes:
-   - **Wiki.js not fully initialized:** The `setup` container must complete before `wiki-js-mcp` can start. Wait 30s after `docker compose up -d`, then check `docker compose logs wiki`
    - **Qdrant not healthy:** `qdrant-mcp` and `ingestion-pipeline` depend on `qdrant-db:healthy`. Wait for `healthy` status
-   - **Missing `.env`:** Copy `.env.example` to `.env` and set `POSTGRES_PASSWORD`
+   - **Missing `.env`:** Copy `.env.example` to `.env`
    - **Port conflict:** See [Port Conflicts](#port-conflicts)
 3. Restart the specific service:
    ```bash
@@ -39,7 +38,7 @@ docker compose ps
 
 ### Symptom: `port is already allocated` or `bind: address already in use`
 
-Ports 8000-8003 and 6333-6334 must be free.
+Ports 8001-8004 and 6333-6334 must be free.
 
 **Resolution:**
 
@@ -59,8 +58,8 @@ Ports 8000-8003 and 6333-6334 must be free.
    - **Use alternate ports in docker-compose.override.yml:**
      ```yaml
      services:
-       wiki-js-mcp:
-         ports: ["8005:8000"]
+       qdrant-mcp:
+         ports: ["8005:8001"]
      ```
 
 ## Qdrant Cold Start / Model Download
@@ -79,7 +78,7 @@ The `all-MiniLM-L6-v2` model (~80 MB) is pre-downloaded in the Docker image. The
 
 ## Cursor Doesn't Discover MCP Servers
 
-### Symptom: Cursor shows no tools from wiki-js-mcp servers
+### Symptom: Cursor shows no tools from wiki-js-mcp v4 servers
 
 **Resolution:**
 
@@ -87,14 +86,14 @@ The `all-MiniLM-L6-v2` model (~80 MB) is pre-downloaded in the Docker image. The
    ```bash
    docker compose ps
    ```
-   All 8 containers should show `healthy` or `running` (except `setup` which shows `exited (0)`).
+   All 5 containers should show `healthy` or `running`.
 
 2. Verify SSE endpoints respond:
    ```bash
-   curl http://localhost:8000/sse   # Wiki.js MCP
    curl http://localhost:8001/sse   # Qdrant MCP
    curl http://localhost:8002/sse   # Ingestion Pipeline
    curl http://localhost:8003/sse   # Tesseract MCP
+   curl http://localhost:8004/sse   # Enrichment Pipeline
    ```
    Each should return SSE event stream headers (or at least not `Connection refused`).
 
@@ -102,10 +101,10 @@ The `all-MiniLM-L6-v2` model (~80 MB) is pre-downloaded in the Docker image. The
    ```json
    {
      "mcpServers": {
-       "wiki-js":     { "url": "http://localhost:8000/sse" },
        "qdrant":      { "url": "http://localhost:8001/sse" },
+       "ingestion":   { "url": "http://localhost:8002/sse" },
        "tesseract":   { "url": "http://localhost:8003/sse" },
-       "ingestion":   { "url": "http://localhost:8002/sse" }
+       "enrichment":  { "url": "http://localhost:8004/sse" }
      }
    }
    ```
@@ -143,25 +142,24 @@ The `all-MiniLM-L6-v2` model (~80 MB) is pre-downloaded in the Docker image. The
 
 ## SSE Endpoint Not Responding
 
-### Symptom: `curl http://localhost:8000/sse` returns `Connection refused` or times out
+### Symptom: `curl http://localhost:800X/sse` returns `Connection refused` or times out
 
 **Resolution:**
 
 1. Check if container is running:
    ```bash
-   docker compose ps wiki-js-mcp
+   docker compose ps <service-name>
    ```
 2. Check container logs:
    ```bash
-   docker compose logs wiki-js-mcp --tail 100
+   docker compose logs <service-name> --tail 100
    ```
 3. Common causes:
-   - **Wiki.js not healthy:** `wiki-js-mcp` waits for `wiki:healthy`. Check `docker compose ps wiki`
-   - **Qdrant not accessible:** `wiki-js-mcp` connects to Qdrant on startup. Check `docker compose ps qdrant-db`
-   - **Authentication failed:** `wiki-js-mcp` authenticates on startup. Check `WIKIJS_TOKEN` in `.env`
+   - **Qdrant not accessible:** MCP servers connect to Qdrant on startup. Check `docker compose ps qdrant-db`
+   - **API key missing:** enrichment-pipeline needs `OPENAI_API_KEY` in `.env` (falls back to heuristics without it)
 4. Restart:
    ```bash
-   docker compose restart wiki-js-mcp
+   docker compose restart <service-name>
    ```
 
 ## Permission Denied on Shared Volume
@@ -190,7 +188,7 @@ The `shared_data` volume is mounted read-only (`:ro`) in MCP server containers. 
 
 ### Symptom: Containers being OOM-killed (exit code 137), or system becomes very slow
 
-The 8-container stack requires ~8 GB RAM minimum.
+The 5-container stack requires ~4 GB RAM minimum.
 
 **Resolution:**
 
@@ -236,17 +234,7 @@ The 8-container stack requires ~8 GB RAM minimum.
 
 **Resolution:**
 
-1. **Wiki.js MCP database:**
-   ```bash
-   # Backup first
-   docker compose cp wiki-js-mcp:/data/wikijs_mappings.db ./backup.db
-   # Delete and let it recreate
-   docker compose exec wiki-js-mcp rm /data/wikijs_mappings.db
-   docker compose restart wiki-js-mcp
-   # Rebuild backlinks
-   # (agent calls wikijs_rebuild_backlink_index)
-   ```
-2. **Ingestion database:**
+1. **Ingestion database:** The ingestion SQLite (`ingestion.db`) lives in the `ingestion_data` Docker volume:
    ```bash
    docker compose exec ingestion-pipeline rm /data/ingestion.db
    docker compose restart ingestion-pipeline
@@ -282,10 +270,10 @@ Your `.env` may have old v2 variables.
 docker compose ps
 
 # Do SSE endpoints respond?
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/sse
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/sse
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8002/sse
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8003/sse
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8004/sse
 
 # Is Qdrant accessible?
 curl http://localhost:6334/collections

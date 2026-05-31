@@ -1,6 +1,6 @@
 # Stack Lifecycle Guide
 
-Commands to build, start, stop, and rebuild the 8-container wiki-js-mcp v3 stack. Read this before operating MCP tools or after changing server code.
+Commands to build, start, stop, and rebuild the 5-container wiki-js-mcp v4 stack. Read this before operating MCP tools or after changing server code.
 
 For tests, DB inspection, and advanced debugging, see [Docker Operations](docker-operations.md).
 
@@ -9,13 +9,13 @@ For tests, DB inspection, and advanced debugging, see [Docker Operations](docker
 - **Cold start** — first time or after `docker compose down`
 - **After code changes** — rebuilt MCP server images (`mcp-servers/`)
 - **Before integration tests** — full stack must be running
-- **Connection errors** — MCP tools fail with connection refused / timeout on ports 8000–8003
+- **Connection errors** — MCP tools fail with connection refused / timeout on ports 8001–8004
 
 ## Prerequisites
 
 - Docker and Docker Compose installed
 - `.env` file at repo root (copy from `.env.example`)
-- `POSTGRES_PASSWORD` set in `.env` (required by compose)
+- No PostgreSQL or Wiki.js required (v4 removed them)
 
 See [Quickstart](quickstart.md) for first-time setup.
 
@@ -23,18 +23,15 @@ See [Quickstart](quickstart.md) for first-time setup.
 
 | Compose service | Container | Port(s) | Steady state |
 |-----------------|-----------|---------|--------------|
-| `db` | `wikijs_db` | internal 5432 | running |
-| `wiki` | `wikijs_app` | 3000 | running |
-| `setup` | `wikijs_setup` | — | **exited 0** (one-shot) |
-| `wiki-js-mcp` | `wikijs_mcp` | 8000 | running |
 | `qdrant-db` | `wikijs_qdrant` | 6333 gRPC, 6334 REST | running |
 | `qdrant-mcp` | `wikijs_qdrant_mcp` | 8001 | running |
 | `ingestion-pipeline` | `wikijs_ingestion` | 8002 | running |
 | `tesseract-mcp` | `wikijs_tesseract_mcp` | 8003 | running |
+| `enrichment-pipeline` | `wikijs_enrichment` | 8004 | running |
 
-**Startup order:** `db` → `wiki` → `setup` (one-shot) → `qdrant-db` → `wiki-js-mcp` → `qdrant-mcp` / `ingestion-pipeline` → `tesseract-mcp`.
+**Startup order:** `qdrant-db` → `qdrant-mcp` / `ingestion-pipeline` → `tesseract-mcp` / `enrichment-pipeline`.
 
-Four services are built from source (`wiki-js-mcp`, `qdrant-mcp`, `ingestion-pipeline`, `tesseract-mcp`); the rest use pre-built images.
+Four services are built from source (`qdrant-mcp`, `ingestion-pipeline`, `tesseract-mcp`, `enrichment-pipeline`); `qdrant-db` uses a pre-built Qdrant image.
 
 ## Core Commands
 
@@ -73,7 +70,7 @@ docker compose up -d --build
 # Stop all containers (volumes preserved)
 docker compose down
 
-# Stop and delete all volumes — DESTRUCTIVE: wipes DB, Qdrant, wiki data
+# Stop and delete all volumes — DESTRUCTIVE: wipes Qdrant vectors, ingestion SQLite, enrichment tracking
 docker compose down -v
 ```
 
@@ -83,7 +80,7 @@ Use `down -v` only when you intentionally want a clean slate. Requires explicit 
 
 ```bash
 # Restart one service
-docker compose restart wiki-js-mcp
+docker compose restart qdrant-mcp
 
 # Container status
 docker compose ps
@@ -100,20 +97,17 @@ docker compose logs --tail 50 ingestion-pipeline
 After `docker compose up -d`, wait ~60 seconds for health checks, then:
 
 ```bash
-# Expect 7 Up + setup Exited (0)
+# Expect 5 Up
 docker compose ps
 
 # MCP SSE endpoints (HTTP status check)
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8000/sse   # Wiki.js MCP
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8001/sse   # Qdrant MCP
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8002/sse   # Ingestion Pipeline
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8003/sse   # Tesseract MCP
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000       # Wiki.js UI
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8004/sse   # Enrichment Pipeline
 ```
 
 Non-200 responses on MCP ports usually mean the service is still starting — wait and retry.
-
-Once MCP servers respond, call `wikijs_connection_status` to confirm Wiki.js and Qdrant connectivity before ingest/query workflows.
 
 ## Common Scenarios
 
@@ -122,10 +116,10 @@ Once MCP servers respond, call `wikijs_connection_status` to confirm Wiki.js and
 | Changed Python in `qdrant-mcp` | `docker compose build qdrant-mcp && docker compose up -d qdrant-mcp` |
 | Changed code in multiple MCP servers | `docker compose build && docker compose up -d` |
 | Port already in use | `docker compose ps`; stop conflicting process or change port in `.env` |
-| `setup` container failed | `docker compose logs setup` — often Wiki.js already initialized; check `curl http://localhost:3000` |
 | Qdrant unreachable from MCP | `curl http://localhost:6334/collections`; restart with `docker compose restart qdrant-db qdrant-mcp` |
 | MCP tool connection refused | `docker compose ps`; start stack with `docker compose up -d` |
 | Need fresh database | `docker compose down -v` then `docker compose up -d` (data loss) |
+| Enrichment fails with API key error | Set `OPENAI_API_KEY` in `.env`. Without it, enrichment falls back to heuristics |
 
 ## Agent Boundaries
 
@@ -137,7 +131,16 @@ Once MCP servers respond, call `wikijs_connection_status` to confirm Wiki.js and
 | `docker compose restart <service>` | Install Tesseract languages |
 | `docker compose logs`, `docker compose ps` | Place raw source files in `/data/shared` |
 
-After starting the stack, always verify health (`docker compose ps` + curl checks or `wikijs_connection_status`) before proceeding with wiki operations.
+After starting the stack, always verify health (`docker compose ps` + curl checks) before proceeding with any MCP tool operations.
+
+## Volumes
+
+| Volume | Mount | Purpose |
+|--------|-------|---------|
+| `qdrant_data` | `/qdrant/storage` | Qdrant vector data |
+| `qdrant_snapshots` | `/qdrant/snapshots` | Qdrant backup snapshots |
+| `ingestion_data` | `/data` | Ingestion SQLite (`ingestion.db`) |
+| `enrichment_data` | `/data` | Enrichment SQLite (`enrichment.db`) |
 
 ## See Also
 

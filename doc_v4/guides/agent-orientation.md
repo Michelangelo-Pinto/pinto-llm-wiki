@@ -8,13 +8,14 @@ How to instruct and orient a new LLM agent to operate the v4 knowledge base.
 
 **There is no Wiki.js**. Content lives in the `knowledge/` directory as markdown files organized by category/subcategory. The agent reads and writes `.md` files directly using filesystem tools (Read, Write, StrReplace, Glob, Grep).
 
-### 2. Three MCP servers are available
+### 2. Four MCP servers are available
 
 | Server | Purpose | Tools |
 |--------|---------|-------|
 | Qdrant MCP (:8001) | Semantic vector search | `qdrant_search`, `qdrant_upsert_chunks`, etc. |
 | Ingestion Pipeline (:8002) | Document processing | `ingest_document`, `ingest_search_chunks`, etc. |
 | Tesseract MCP (:8003) | OCR | `ocr_extract_text`, `ocr_get_confidence`, etc. |
+| Enrichment Pipeline (:8004) | Post-ingestion enrichment | `enrich_get_config`, `enrich_set_config`, `enrich_document`, `enrich_get_status` |
 
 ### 3. The knowledge hierarchy
 

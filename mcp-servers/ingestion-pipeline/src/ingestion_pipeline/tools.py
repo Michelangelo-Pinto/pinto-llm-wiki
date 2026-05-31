@@ -1,4 +1,27 @@
-"""MCP tools for the ingestion pipeline."""
+"""MCP tools for the ingestion pipeline.
+
+Pipeline: detect → extract → chunk → embed → upsert → track (SQLite).
+
+Payload architecture — 5-layer design:
+    Layer 1 (core):     Populated here — document_id, chunk_index, text, chunk_hash
+    Layer 2 (routing):  null placeholders — populated by agent pre-ingestion or enrichment
+    Layer 3 (document): empty dict — populated by enrichment (doc-level metadata)
+    Layer 4 (chunk):    empty dict — populated by enrichment (per-chunk heuristics)
+    Layer 5 (references): empty dict — populated by enrichment (cross-references)
+
+Why 5 separate layers instead of flat fields:
+- Layer separation allows independent population: the agent can fill routing metadata
+  without touching document/chunk/references fields
+- Enrichment can run conditionally (skip/basic/full) and only populate the layers
+  appropriate for the chosen strategy
+- Qdrant filter performance: nested key filters (routing.category) are efficient
+  because they target a specific sub-object, not the entire payload
+- Backward compatibility: legacy flat fields (document_id, text, etc.) are
+  duplicated at the payload root so existing filters continue to work
+
+Idempotency: content hash (SHA-256) prevents duplicate ingestion. force=True
+clears existing data and re-ingests from scratch.
+"""
 
 import hashlib
 import json
@@ -16,6 +39,11 @@ from .detector import detect_document_type
 from .embedder import embed_chunks
 from .parsers.pdf_parser import extract_pdf_hybrid
 from .parsers.text_parser import extract_text
+from .parsers.html_parser import extract_html
+from .parsers.json_parser import extract_json
+from .parsers.xml_parser import extract_xml
+from .parsers.epub_parser import extract_epub
+from .payload import build_chunk_payload, chunk_source_type
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +116,7 @@ def ingest_document(
         doc_type = detect_document_type(str(path))
         subtype = doc_type.get("subtype", "unknown")
 
-        # Extract text
+        # Extract text based on detected subtype
         if subtype == "text_pdf":
             text = extract_pdf_hybrid(str(path)).get("full_text", "")
         elif subtype == "scanned_pdf":
@@ -97,14 +125,24 @@ def ingest_document(
             import docx
             d = docx.Document(str(path))
             text = "\n".join(p.text for p in d.paragraphs)
+        elif subtype == "html":
+            text = extract_html(str(path))
+        elif subtype == "json":
+            text = extract_json(str(path))
+        elif subtype == "xml":
+            text = extract_xml(str(path))
+        elif subtype == "epub":
+            text = extract_epub(str(path))
         else:
             text = extract_text(str(path))
 
         if not text.strip():
             return json.dumps({"error": "No text extracted from document"})
 
-        # Chunk
-        chunks = chunk_document(text, subtype.split("_")[0], chunk_size, chunk_overlap)
+        # Chunk using source-type-aware boundaries (html -> markdown headings)
+        chunks = chunk_document(
+            text, chunk_source_type(subtype), chunk_size, chunk_overlap
+        )
 
         # Embed
         embeddings = embed_chunks(chunks)
@@ -115,18 +153,17 @@ def ingest_document(
 
         points = []
         for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
+            payload = build_chunk_payload(
+                document_id=document_id,
+                chunk_index=i,
+                chunk_text=chunk_text,
+                source_file=str(path),
+                file_type=subtype,
+            )
             points.append(models.PointStruct(
                 id=str(uuid.uuid4()),
                 vector=embedding,
-                payload={
-                    "document_id": document_id,
-                    "chunk_index": i,
-                    "source_file": str(path),
-                    "file_type": subtype,
-                    "text": chunk_text,
-                    "content_hash": hashlib.sha256(chunk_text.encode()).hexdigest()[:16],
-                    "ingested_at": str(__import__("datetime").datetime.utcnow()),
-                },
+                payload=payload,
             ))
 
         client.upsert(collection_name=collection, points=points)
@@ -172,7 +209,11 @@ def ingest_directory(
 ) -> str:
     """Ingest all supported documents in a directory."""
     if file_patterns is None:
-        file_patterns = ["*.pdf", "*.docx", "*.md", "*.txt", "*.png", "*.jpg", "*.jpeg"]
+        file_patterns = [
+            "*.pdf", "*.docx", "*.md", "*.txt",
+            "*.html", "*.htm", "*.json", "*.xml", "*.epub",
+            "*.png", "*.jpg", "*.jpeg",
+        ]
 
     path = Path(dir_path)
     if not path.exists() or not path.is_dir():

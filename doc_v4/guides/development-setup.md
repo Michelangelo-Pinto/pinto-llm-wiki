@@ -1,6 +1,6 @@
 # Development Setup
 
-How to set up a development environment for contributing to wiki-js-mcp v3.
+How to set up a development environment for contributing to wiki-js-mcp v4.
 
 ## Prerequisites
 
@@ -13,22 +13,9 @@ How to set up a development environment for contributing to wiki-js-mcp v3.
 
 ```
 wiki-js-mcp/
-├── docker-compose.yml              # 8-container stack
+├── docker-compose.yml              # 5-container stack
 ├── .env.example                    # Template environment variables
 ├── mcp-servers/
-│   ├── wiki-js-mcp/               # Wiki.js MCP server (~43 tools)
-│   │   └── src/wiki_mcp_server/
-│   │       ├── server.py           # FastMCP entry point
-│   │       ├── client.py           # Wiki.js GraphQL client (httpx + JWT)
-│   │       ├── config.py           # pydantic Settings
-│   │       ├── db.py               # SQLAlchemy models
-│   │       ├── utils.py            # AST parsing, hashing, markdown helpers
-│   │       ├── tools_pages.py      # ~26 page management tools
-│   │       ├── tools_graph.py      # 3 graph tools
-│   │       ├── tools_hierarchy.py  # 4 hierarchy tools
-│   │       ├── tools_files.py      # 4 file integration tools
-│   │       ├── tools_deletion.py   # 4 deletion tools
-│   │       └── tools_system.py     # 3 system tools
 │   ├── qdrant-mcp/                # Qdrant MCP server (8 tools)
 │   │   └── src/qdrant_mcp/
 │   │       ├── server.py
@@ -42,15 +29,35 @@ wiki-js-mcp/
 │   │       ├── chunker.py          # Section-aware recursive chunking
 │   │       ├── embedder.py         # Lazy SentenceTransformer singleton
 │   │       ├── detector.py         # PyMuPDF file type detection
+│   │       ├── payload.py          # 5-layer Qdrant payload builder
 │   │       └── parsers/
 │   │           ├── pdf_parser.py   # Hybrid PDF text extraction
-│   │           └── text_parser.py  # Text/Markdown parser
-│   └── tesseract-mcp/             # Tesseract MCP server (7 tools)
-│       └── src/tesseract_mcp/
-│           ├── server.py
-│           ├── tools.py
-│           ├── detector.py         # PyMuPDF text sampling heuristic
-│           └── preprocess.py       # OCR preprocessing pipeline
+│   │           ├── text_parser.py  # Text/Markdown parser
+│   │           ├── html_parser.py  # HTML extraction (BeautifulSoup)
+│   │           ├── json_parser.py  # JSON to structured text
+│   │           ├── xml_parser.py   # XML extraction
+│   │           └── epub_parser.py  # EPUB chapter extraction
+│   ├── tesseract-mcp/             # Tesseract MCP server (7 tools)
+│   │   └── src/tesseract_mcp/
+│   │       ├── server.py
+│   │       ├── tools.py
+│   │       ├── detector.py         # PyMuPDF text sampling heuristic
+│   │       └── preprocess.py       # OCR preprocessing pipeline
+│   └── enrichment-pipeline/       # Enrichment Pipeline (4 tools)
+│       └── src/enrichment_pipeline/
+│           ├── server.py           # FastMCP entry point
+│           ├── tools.py            # 4 enrichment tools
+│           ├── graph.py            # LangGraph StateGraph
+│           ├── config.py           # Hot-reload YAML frontmatter
+│           ├── db.py               # SQLAlchemy models (enrichment.db)
+│           ├── logger.py           # Structured JSON-lines logging
+│           └── nodes/
+│               ├── pre_analysis.py      # Strategy decision
+│               ├── classifier.py        # Document classification (LLM)
+│               ├── reference_extractor.py  # Reference extraction (LLM)
+│               ├── chunk_mapper.py      # Reference→chunk mapping
+│               ├── chunk_enricher.py    # Per-chunk heuristics
+│               └── upsert.py            # Enriched payload upsert
 ├── tests/
 │   ├── unit/                       # ~109 unit tests (no Docker required)
 │   ├── integration/
@@ -92,7 +99,7 @@ curl http://localhost:8001/sse   # Qdrant MCP
 Unit tests run without any containers. Make changes, then:
 
 ```bash
-PYTHONPATH="mcp-servers/qdrant-mcp/src:mcp-servers/ingestion-pipeline/src:mcp-servers/wiki-js-mcp/src:mcp-servers/tesseract-mcp/src" \
+PYTHONPATH="mcp-servers/qdrant-mcp/src:mcp-servers/ingestion-pipeline/src:mcp-servers/tesseract-mcp/src:mcp-servers/enrichment-pipeline/src" \
 pytest tests/unit/ -v -m unit
 ```
 
@@ -111,8 +118,8 @@ docker compose --profile test run --rm test-runner pytest tests/integration/qdra
 After code changes, rebuild and restart:
 
 ```bash
-docker compose build wiki-js-mcp
-docker compose up -d wiki-js-mcp
+docker compose build ingestion-pipeline
+docker compose up -d ingestion-pipeline
 ```
 
 Or for all changed services:
@@ -124,7 +131,7 @@ docker compose up -d
 
 #### 4. Run full-stack tests
 
-Requires the complete 8-container stack:
+Requires the complete 5-container stack:
 
 ```bash
 docker compose up -d
@@ -136,7 +143,8 @@ docker compose --profile integration run --rm test-runner \
 
 | Changed file(s) | What to rebuild | What to test |
 |-----------------|----------------|-------------|
-| `wiki_mcp_server/*.py` | `wiki-js-mcp` | unit + regression + smoke |
+| `ingestion_pipeline/*.py` | `ingestion-pipeline` | unit + e2e |
+| `enrichment_pipeline/*.py` | `enrichment-pipeline` | unit + integration |
 | `qdrant_mcp/*.py` | `qdrant-mcp` | unit + integration/qdrant |
 | `ingestion_pipeline/*.py` | `ingestion-pipeline` | unit + e2e |
 | `tesseract_mcp/*.py` | `tesseract-mcp` | unit + smoke |
@@ -173,7 +181,7 @@ source venv/bin/activate
 pip install sqlalchemy qdrant-client sentence-transformers pytest pytest-mock
 
 # Run unit tests
-PYTHONPATH="mcp-servers/qdrant-mcp/src:mcp-servers/ingestion-pipeline/src:mcp-servers/wiki-js-mcp/src:mcp-servers/tesseract-mcp/src" \
+PYTHONPATH="mcp-servers/qdrant-mcp/src:mcp-servers/ingestion-pipeline/src:mcp-servers/tesseract-mcp/src:mcp-servers/enrichment-pipeline/src" \
 pytest tests/unit/ -v -m unit
 ```
 
@@ -183,7 +191,7 @@ Module-level unit tests use `unittest.mock.patch` and `pytest-mock` to isolate p
 
 ```bash
 # Access a container shell
-docker compose exec wiki-js-mcp bash
+docker compose exec ingestion-pipeline bash
 
 # Access Qdrant directly
 docker compose exec qdrant-mcp python3 -c "
@@ -193,11 +201,11 @@ print(client.get_collections())
 "
 
 # Access SQLite databases
-docker compose exec wiki-js-mcp sqlite3 /data/wikijs_mappings.db ".tables"
+docker compose exec ingestion-pipeline sqlite3 /data/ingestion.db ".tables"
 docker compose exec ingestion-pipeline sqlite3 /data/ingestion.db ".tables"
 
 # View live logs
-docker compose logs -f wiki-js-mcp
+docker compose logs -f ingestion-pipeline
 docker compose logs -f ingestion-pipeline
 ```
 
@@ -205,7 +213,11 @@ docker compose logs -f ingestion-pipeline
 
 ```bash
 # Seed structured docs pages into Wiki.js
-docker compose exec wiki-js-mcp python3 scripts/seed_wiki_docs.py
+# Run ingestion on a test file
+docker compose exec ingestion-pipeline python3 -c "
+from ingestion_pipeline.tools import ingest_document
+print(ingest_document('/data/shared/test.md'))
+"
 
 # This creates ~20 pages with cross-references for testing backlinks, graph, and search
 
@@ -232,7 +244,7 @@ See [Patterns](../patterns/index.md) for full details:
 GitHub Actions in `.github/workflows/test.yml`:
 
 - **`qdrant-tests`** (fast, ~3 min): Runs on every push/PR. Requires only `qdrant-db`
-- **`stack-tests`** (full-stack, ~5 min): Runs on push to `main`. Requires full 8-container stack
+- **`stack-tests`** (full-stack, ~5 min): Runs on push to `main`. Requires full 5-container stack
 
 ## Related Documents
 

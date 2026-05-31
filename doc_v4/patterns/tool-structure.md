@@ -1,6 +1,6 @@
 # Tool Structure
 
-Every MCP tool across all 4 v3 servers follows a consistent pattern.
+Every MCP tool across all 4 v4 servers follows a consistent pattern.
 
 ## Core pattern
 
