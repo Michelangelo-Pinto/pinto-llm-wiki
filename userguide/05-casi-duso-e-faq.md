@@ -51,7 +51,7 @@ Due modalita' complementari:
 
 Dipende dalla dimensione e dal tipo. Un PDF di 10 pagine solo testo: pochi secondi. Un PDF scansionato di 100 pagine: qualche minuto, perche' deve passare attraverso OCR (Tesseract).
 
-### Posso usare wiki-js-mcp senza Docker?
+### Posso usare pinto-llm-wiki senza Docker?
 
 No. Lo stack e' interamente containerizzato e richiede Docker Compose v2.
 

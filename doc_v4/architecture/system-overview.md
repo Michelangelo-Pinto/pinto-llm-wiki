@@ -1,16 +1,16 @@
 # System Overview v4
 
-wiki-js-mcp v4 is a **5-container** Docker stack providing 4 independent MCP servers wrapping Qdrant vector search, Tesseract OCR, document ingestion, and post-ingestion enrichment (LangGraph).
+pinto-llm-wiki v4 is a **5-container** Docker stack providing 4 independent MCP servers wrapping Qdrant vector search, Tesseract OCR, document ingestion, and post-ingestion enrichment (LangGraph).
 
 ## Components
 
 | Component | Container | Role | Port |
 |-----------|-----------|------|------|
-| **Qdrant DB** | `wikijs_qdrant` | Vector database (semantic search) | 6333 (gRPC) / 6334 (REST) |
-| **Qdrant MCP** | `wikijs_qdrant_mcp` | 8 tools wrapping Qdrant REST API | 8001 |
-| **Ingestion Pipeline** | `wikijs_ingestion` | Document processing with OCR | 8002 |
-| **Tesseract MCP** | `wikijs_tesseract_mcp` | Agent-facing OCR tools | 8003 |
-| **Enrichment Pipeline** | `wikijs_enrichment` | Post-ingestion LangGraph enrichment | 8004 |
+| **Qdrant DB** | `pinto_llm_qdrant` | Vector database (semantic search) | 6333 (gRPC) / 6334 (REST) |
+| **Qdrant MCP** | `pinto_llm_qdrant_mcp` | 8 tools wrapping Qdrant REST API | 8001 |
+| **Ingestion Pipeline** | `pinto_llm_ingestion` | Document processing with OCR | 8002 |
+| **Tesseract MCP** | `pinto_llm_tesseract_mcp` | Agent-facing OCR tools | 8003 |
+| **Enrichment Pipeline** | `pinto_llm_enrichment` | Post-ingestion LangGraph enrichment | 8004 |
 
 The knowledge base lives on the filesystem at `knowledge/`. Ingestion staging: `to_ingest/` bind mount → `/data/shared`.
 
@@ -66,7 +66,7 @@ sequenceDiagram
 
 ## Network
 
-All 5 containers share the `wikijs-net` bridge network. Inter-container communication uses Docker service names: `qdrant-db:6334`, `qdrant-mcp:8001`, etc.
+All 5 containers share the `pinto-llm-net` bridge network. Inter-container communication uses Docker service names: `qdrant-db:6334`, `qdrant-mcp:8001`, etc.
 
 ## MCP Transports
 

@@ -1,6 +1,6 @@
 # Configuration Reference
 
-Environment variables and Docker profiles for wiki-js-mcp v4.
+Environment variables and Docker profiles for pinto-llm-wiki v4.
 
 ## Environment Variables
 

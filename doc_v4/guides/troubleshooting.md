@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Common operational issues in wiki-js-mcp v4 and how to resolve them.
+Common operational issues in pinto-llm-wiki v4 and how to resolve them.
 
 > For tool-specific errors (Qdrant, ingestion), see [Error Catalog](../reference/error-catalog.md).
 
@@ -57,7 +57,7 @@ Ports 8001-8003 and 6333-6334 must be free.
 
 ## Cursor Doesn't Discover MCP Servers
 
-### Symptom: Cursor shows no tools from wiki-js-mcp v4 servers
+### Symptom: Cursor shows no tools from pinto-llm-wiki v4 servers
 
 **Resolution:**
 

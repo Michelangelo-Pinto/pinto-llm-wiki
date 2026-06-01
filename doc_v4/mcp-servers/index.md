@@ -1,6 +1,6 @@
 # MCP Server Documentation v4
 
-Three independent MCP servers forming the wiki-js-mcp v4 ecosystem. Wiki.js MCP was removed in v4.
+Three independent MCP servers forming the pinto-llm-wiki v4 ecosystem. Wiki.js MCP was removed in v4.
 
 ## Server Overview
 

@@ -1,6 +1,6 @@
 # Guides v4
 
-Practical guides for using wiki-js-mcp v4 across setup, workflows, and operations.
+Practical guides for using pinto-llm-wiki v4 across setup, workflows, and operations.
 
 ## Quick Navigation
 
@@ -22,7 +22,7 @@ Practical guides for using wiki-js-mcp v4 across setup, workflows, and operation
 
 ## Agent Reading Order
 
-For an LLM agent operating against wiki-js-mcp v4, read in this order:
+For an LLM agent operating against pinto-llm-wiki v4, read in this order:
 
 0. **[Stack Lifecycle](stack-lifecycle.md)** — Build, start, stop, rebuild. Ensure the stack is up before any MCP workflow.
 1. **[LLM Wiki Workflows](llm-wiki-workflows.md)** — The eight core workflows (Ingest, Query, Lint, Document Processing, OCR, Web, Multi-Hop, Enrichment). This is the primary operating manual.

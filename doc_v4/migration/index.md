@@ -1,6 +1,6 @@
 # Migration: v3 → v4
 
-Guide for migrating from wiki-js-mcp v3 (Wiki.js-based) to v4 (file-system knowledge base).
+Guide for migrating from pinto-llm-wiki v3 (Wiki.js-based) to v4 (file-system knowledge base).
 
 ## What Changed
 
@@ -15,7 +15,7 @@ Guide for migrating from wiki-js-mcp v3 (Wiki.js-based) to v4 (file-system knowl
 | Semantic search | `wikijs_smart_query` (RRF fusion) | `qdrant_search` |
 | Keyword search | `wikijs_search_pages` | `Grep` on filesystem |
 | Qdrant collections | `wiki_pages` + `documents` | `documents` only |
-| SQLite databases | `wikijs_mappings.db` + `ingestion.db` | `ingestion.db` only |
+| SQLite databases | `pinto_llm_mappings.db` + `ingestion.db` | `ingestion.db` only |
 | Backlinks / Graph | SQLite-based, auto-synced | Filesystem links in markdown |
 
 ## Removed Features
@@ -62,7 +62,7 @@ The following v3 features are not present in v4:
 
 ```bash
 # v3: 8 containers
-docker compose up -d   # Started db, wiki, setup, wiki-js-mcp, qdrant-db, qdrant-mcp, ingestion-pipeline, tesseract-mcp
+docker compose up -d   # Started db, wiki, setup, pinto-llm-wiki, qdrant-db, qdrant-mcp, ingestion-pipeline, tesseract-mcp
 
 # v4: 4 containers
 docker compose up -d   # Starts qdrant-db, qdrant-mcp, ingestion-pipeline, tesseract-mcp

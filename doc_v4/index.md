@@ -1,4 +1,4 @@
-# wiki-js-mcp v4 Documentation
+# pinto-llm-wiki v4 Documentation
 
 Multi-MCP server ecosystem with Qdrant vector search, Tesseract OCR, and document ingestion pipeline. **Filesystem-based knowledge base** replacing Wiki.js.
 
@@ -43,10 +43,10 @@ flowchart TD
 
 | Server | Container | Port | Tools |
 |--------|-----------|------|-------|
-| Qdrant MCP | `wikijs_qdrant_mcp` | 8001 | 8 |
-| Ingestion Pipeline | `wikijs_ingestion` | 8002 | 7 |
-| Tesseract MCP | `wikijs_tesseract_mcp` | 8003 | 7 |
-| Enrichment Pipeline | `wikijs_enrichment` | 8004 | 4 |
+| Qdrant MCP | `pinto_llm_qdrant_mcp` | 8001 | 8 |
+| Ingestion Pipeline | `pinto_llm_ingestion` | 8002 | 7 |
+| Tesseract MCP | `pinto_llm_tesseract_mcp` | 8003 | 7 |
+| Enrichment Pipeline | `pinto_llm_enrichment` | 8004 | 4 |
 
 ## What Changed from v3
 

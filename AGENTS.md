@@ -1,13 +1,13 @@
-# AGENTS.md — wiki-js-mcp v4
+# AGENTS.md — pinto-llm-wiki v4
 
-Wiki-js-mcp v4 e' una knowledge base file-system potenziata da AI, accessibile da LLM agent via **4 server MCP indipendenti** che espongono complessivamente **26 tool** su trasporto **SSE**.
+Pinto-llm-wiki v4 e' una knowledge base file-system potenziata da AI, accessibile da LLM agent via **4 server MCP indipendenti** che espongono complessivamente **26 tool** su trasporto **SSE**.
 
 | Server | Container | Porta | Prefisso | Tool |
 |--------|-----------|-------|----------|------|
-| Qdrant MCP | `wikijs_qdrant_mcp` | 8001 | `qdrant_*` | 8 |
-| Ingestion Pipeline | `wikijs_ingestion` | 8002 | `ingest_*` | 7 |
-| Tesseract MCP | `wikijs_tesseract_mcp` | 8003 | `ocr_*` | 7 |
-| Enrichment Pipeline | `wikijs_enrichment` | 8004 | `enrich_*` | 4 |
+| Qdrant MCP | `pinto_llm_qdrant_mcp` | 8001 | `qdrant_*` | 8 |
+| Ingestion Pipeline | `pinto_llm_ingestion` | 8002 | `ingest_*` | 7 |
+| Tesseract MCP | `pinto_llm_tesseract_mcp` | 8003 | `ocr_*` | 7 |
+| Enrichment Pipeline | `pinto_llm_enrichment` | 8004 | `enrich_*` | 4 |
 
 Tutti i server usano SSE su path `/sse`. Lo stack Docker avvia **5 container** (qdrant-db + 4 MCP server).
 

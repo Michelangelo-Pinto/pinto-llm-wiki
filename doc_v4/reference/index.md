@@ -1,6 +1,6 @@
 # Reference
 
-Technical reference documentation for wiki-js-mcp v4. Look up tool signatures, configuration variables, test suites, and metadata templates.
+Technical reference documentation for pinto-llm-wiki v4. Look up tool signatures, configuration variables, test suites, and metadata templates.
 
 ## Quick Navigation
 

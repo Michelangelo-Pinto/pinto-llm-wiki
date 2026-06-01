@@ -1,15 +1,15 @@
 # Quick Reference v4
 
-Single-page cheat sheet for LLM agents operating against wiki-js-mcp v4.
+Single-page cheat sheet for LLM agents operating against pinto-llm-wiki v4.
 
 ## Server Map
 
 | Server | Container | Port | Tools | Backend |
 |--------|-----------|------|-------|---------|
-| **Qdrant MCP** | `wikijs_qdrant_mcp` | 8001 | 8 | Qdrant REST :6334 |
-| **Ingestion Pipeline** | `wikijs_ingestion` | 8002 | 7 | Qdrant + pytesseract |
-| **Tesseract MCP** | `wikijs_tesseract_mcp` | 8003 | 7 | Tesseract binary |
-| **Enrichment Pipeline** | `wikijs_enrichment` | 8004 | 4 | Qdrant + LangGraph + OpenAI |
+| **Qdrant MCP** | `pinto_llm_qdrant_mcp` | 8001 | 8 | Qdrant REST :6334 |
+| **Ingestion Pipeline** | `pinto_llm_ingestion` | 8002 | 7 | Qdrant + pytesseract |
+| **Tesseract MCP** | `pinto_llm_tesseract_mcp` | 8003 | 7 | Tesseract binary |
+| **Enrichment Pipeline** | `pinto_llm_enrichment` | 8004 | 4 | Qdrant + LangGraph + OpenAI |
 
 ## Knowledge Base
 

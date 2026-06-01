@@ -1,6 +1,6 @@
 # Error Catalog v4
 
-Organized catalog of common errors across all 4 MCP servers in wiki-js-mcp v4. Each entry includes the typical error message, likely cause, and resolution.
+Organized catalog of common errors across all 4 MCP servers in pinto-llm-wiki v4. Each entry includes the typical error message, likely cause, and resolution.
 
 > For operation-level troubleshooting (containers, Docker, SSE), see [Troubleshooting](../guides/troubleshooting.md).
 > For a compact view, see [Quick Reference](quick-reference.md).

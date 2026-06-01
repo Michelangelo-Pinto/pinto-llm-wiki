@@ -13,8 +13,8 @@ Questo capitolo ti guida dallo zero al primo comando funzionante. Se qualcosa va
 
 ```bash
 # 1. Clona il repository
-git clone https://github.com/mikep/wiki-js-mcp.git
-cd wiki-js-mcp
+git clone https://github.com/mikep/pinto-llm-wiki.git
+cd pinto-llm-wiki
 
 # 2. Configura le variabili d'ambiente
 cp .env.example .env

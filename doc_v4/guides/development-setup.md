@@ -1,6 +1,6 @@
 # Development Setup
 
-Development environment setup and conventions for wiki-js-mcp v4.
+Development environment setup and conventions for pinto-llm-wiki v4.
 
 ## Repository Structure
 
@@ -24,8 +24,8 @@ tests/                        # Test suites
 
 ```bash
 # 1. Clone and configure
-git clone https://github.com/mikep/wiki-js-mcp.git
-cd wiki-js-mcp
+git clone https://github.com/mikep/pinto-llm-wiki.git
+cd pinto-llm-wiki
 cp .env.example .env
 
 # 2. Start the stack

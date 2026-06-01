@@ -7,7 +7,7 @@ v4 uses Qdrant as the vector database for semantic search. Qdrant provides nativ
 ```yaml
 qdrant-db:
   image: qdrant/qdrant:v1.17.1
-  container_name: wikijs_qdrant
+  container_name: pinto_llm_qdrant
   ports:
     - "6333:6333"   # gRPC
     - "6334:6334"   # REST

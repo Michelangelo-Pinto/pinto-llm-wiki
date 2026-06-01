@@ -1,6 +1,6 @@
 # Improvements
 
-Future enhancements and optimization opportunities for wiki-js-mcp v4.
+Future enhancements and optimization opportunities for pinto-llm-wiki v4.
 
 ## Short-term (quick wins)
 
@@ -29,7 +29,7 @@ Future enhancements and optimization opportunities for wiki-js-mcp v4.
 |--------|-------------|
 | **Contradiction detection** | NLP-based check comparing pages with high similarity but opposing claims; requires LLM |
 | **Automatic summary generation** | Use a local LLM (e.g. Ollama) to generate page summaries on create/update |
-| **RAG pipeline integration** | Use wiki-js-mcp as a knowledge base backend for RAG (Retrieval-Augmented Generation) |
+| **RAG pipeline integration** | Use pinto-llm-wiki as a knowledge base backend for RAG (Retrieval-Augmented Generation) |
 | **Multi-language OCR** | Expand Tesseract language packs beyond English and Italian |
 | **Streaming MCP responses** | Use FastMCP streaming for long-running operations (ingestion, rebuild_index) |
 

@@ -1,6 +1,6 @@
 # Stack Lifecycle Guide
 
-Commands to build, start, stop, and rebuild the 4-container wiki-js-mcp v4 stack. Read this before operating MCP tools or after changing server code.
+Commands to build, start, stop, and rebuild the 4-container pinto-llm-wiki v4 stack. Read this before operating MCP tools or after changing server code.
 
 For tests, DB inspection, and advanced debugging, see [Docker Operations](docker-operations.md).
 
@@ -23,10 +23,10 @@ See [Quickstart](quickstart.md) for first-time setup.
 
 | Compose service | Container | Port(s) | Steady state |
 |-----------------|-----------|---------|--------------|
-| `qdrant-db` | `wikijs_qdrant` | 6333 gRPC, 6334 REST | running |
-| `qdrant-mcp` | `wikijs_qdrant_mcp` | 8001 | running |
-| `ingestion-pipeline` | `wikijs_ingestion` | 8002 | running |
-| `tesseract-mcp` | `wikijs_tesseract_mcp` | 8003 | running |
+| `qdrant-db` | `pinto_llm_qdrant` | 6333 gRPC, 6334 REST | running |
+| `qdrant-mcp` | `pinto_llm_qdrant_mcp` | 8001 | running |
+| `ingestion-pipeline` | `pinto_llm_ingestion` | 8002 | running |
+| `tesseract-mcp` | `pinto_llm_tesseract_mcp` | 8003 | running |
 
 **Startup order:** `qdrant-db` → `qdrant-mcp` / `ingestion-pipeline` → `tesseract-mcp`.
 

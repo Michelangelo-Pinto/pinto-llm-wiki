@@ -1,6 +1,6 @@
 # Features
 
-Tool features organized by MCP server in wiki-js-mcp v4.
+Tool features organized by MCP server in pinto-llm-wiki v4.
 
 ## Qdrant MCP (8 tools)
 

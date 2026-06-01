@@ -6,8 +6,8 @@ Post-ingestion payload enrichment via LangGraph workflow.
 
 | Property | Value |
 |----------|-------|
-| Image | `wiki-js-enrichment-pipeline:latest` |
-| Container | `wikijs_enrichment` |
+| Image | `pinto-llm-enrichment-pipeline:latest` |
+| Container | `pinto_llm_enrichment` |
 | Port | 8004 |
 | SSE path | `/sse` |
 | Prefix | `enrich_*` |

@@ -1,6 +1,6 @@
 # Testing Guide
 
-How and what we test across the wiki-js-mcp v4 ecosystem.
+How and what we test across the pinto-llm-wiki v4 ecosystem.
 
 ## Test Pyramid
 

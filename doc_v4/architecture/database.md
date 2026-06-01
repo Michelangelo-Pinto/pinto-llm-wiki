@@ -83,6 +83,6 @@ finally:
 | Aspect | v3 | v4 |
 |--------|----|----|
 | Vector storage | Qdrant `wiki_pages` + `documents` | Qdrant `documents` only |
-| Wiki.js MCP DB | SQLite `wikijs_mappings.db` (FileMapping, BacklinkIndex, RepositoryContext) | Removed |
+| Wiki.js MCP DB | SQLite `pinto_llm_mappings.db` (FileMapping, BacklinkIndex, RepositoryContext) | Removed |
 | Ingestion DB | SQLite `ingestion.db` | SQLite `ingestion.db` (unchanged) |
 | Knowledge store | Wiki.js + PostgreSQL | File-system `knowledge/` |

@@ -1,6 +1,6 @@
 # Tests — Developer Guide v4
 
-How to write, run, and debug tests for wiki-js-mcp v4.
+How to write, run, and debug tests for pinto-llm-wiki v4.
 
 ## Directory Structure
 

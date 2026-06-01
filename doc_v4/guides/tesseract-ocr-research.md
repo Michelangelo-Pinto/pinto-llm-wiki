@@ -592,7 +592,7 @@ The research below informed the production server at [`mcp-servers/tesseract-mcp
 
 **Not implemented**: `ocr_extract_tables` (Section 4 prototype below) — Tesseract has no native table support; use cloud OCR or Docling for production tables.
 
-Transport: **SSE on port 8003** via FastMCP. Container: `wikijs_tesseract_mcp`. Shared files via `shared_data:/data/shared:ro`.
+Transport: **SSE on port 8003** via FastMCP. Container: `pinto_llm_tesseract_mcp`. Shared files via `shared_data:/data/shared:ro`.
 
 ### Design rationale (from research)
 
@@ -856,8 +856,8 @@ From [`docker-compose.yml`](../../docker-compose.yml):
   tesseract-mcp:
     build:
       context: ./mcp-servers/tesseract-mcp
-    image: wiki-js-tesseract-mcp:latest
-    container_name: wikijs_tesseract_mcp
+    image: pinto-llm-tesseract-mcp:latest
+    container_name: pinto_llm_tesseract_mcp
     ports:
       - "${TESSERACT_MCP_PORT:-8003}:8003"
     environment:
@@ -867,7 +867,7 @@ From [`docker-compose.yml`](../../docker-compose.yml):
     volumes:
       - shared_data:/data/shared:ro
     networks:
-      - wikijs-net
+      - pinto-llm-net
 
   ingestion-pipeline:
     build:

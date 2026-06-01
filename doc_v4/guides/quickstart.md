@@ -1,6 +1,6 @@
 # Quickstart
 
-Get wiki-js-mcp v4 running in 5 minutes.
+Get pinto-llm-wiki v4 running in 5 minutes.
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@ Get wiki-js-mcp v4 running in 5 minutes.
 ## 1. Clone and Configure
 
 ```bash
-git clone https://github.com/mikep/wiki-js-mcp.git
-cd wiki-js-mcp
+git clone https://github.com/mikep/pinto-llm-wiki.git
+cd pinto-llm-wiki
 cp .env.example .env
 ```
 
@@ -25,10 +25,10 @@ docker compose up -d
 ```
 
 This starts 4 containers:
-- `wikijs_qdrant` — Qdrant vector DB (REST :6334, gRPC :6333)
-- `wikijs_qdrant_mcp` — Qdrant MCP server (:8001)
-- `wikijs_ingestion` — Ingestion Pipeline (:8002)
-- `wikijs_tesseract_mcp` — Tesseract OCR MCP (:8003)
+- `pinto_llm_qdrant` — Qdrant vector DB (REST :6334, gRPC :6333)
+- `pinto_llm_qdrant_mcp` — Qdrant MCP server (:8001)
+- `pinto_llm_ingestion` — Ingestion Pipeline (:8002)
+- `pinto_llm_tesseract_mcp` — Tesseract OCR MCP (:8003)
 
 First startup takes 5-10 minutes (image build with pre-downloaded models). Subsequent starts are fast.
 

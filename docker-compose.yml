@@ -8,7 +8,7 @@ services:
   # Qdrant vector database for semantic search and document retrieval.
   qdrant-db:
     image: qdrant/qdrant:v1.17.1
-    container_name: wikijs_qdrant
+    container_name: pinto_llm_qdrant
     restart: unless-stopped
     ports:
       - "${QDRANT_GRPC_PORT:-6333}:6333"
@@ -21,7 +21,7 @@ services:
       - qdrant_data:/qdrant/storage
       - qdrant_snapshots:/qdrant/snapshots
     networks:
-      - wikijs-net
+      - pinto-llm-net
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333' 2>/dev/null || exit 1"]
       interval: 30s
@@ -34,8 +34,8 @@ services:
     build:
       context: ./mcp-servers/qdrant-mcp
       dockerfile: Dockerfile
-    image: wiki-js-qdrant-mcp:latest
-    container_name: wikijs_qdrant_mcp
+    image: pinto-llm-qdrant-mcp:latest
+    container_name: pinto_llm_qdrant_mcp
     depends_on:
       qdrant-db:
         condition: service_healthy
@@ -52,7 +52,7 @@ services:
     volumes:
       - ./to_ingest:/data/shared:ro
     networks:
-      - wikijs-net
+      - pinto-llm-net
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8001' 2>/dev/null || exit 1"]
       interval: 30s
@@ -67,8 +67,8 @@ services:
     build:
       context: ./mcp-servers/ingestion-pipeline
       dockerfile: Dockerfile
-    image: wiki-js-ingestion-pipeline:latest
-    container_name: wikijs_ingestion
+    image: pinto-llm-ingestion-pipeline:latest
+    container_name: pinto_llm_ingestion
     depends_on:
       qdrant-db:
         condition: service_healthy
@@ -88,7 +88,7 @@ services:
       - ./to_ingest:/data/shared:ro
       - ingestion_data:/data
     networks:
-      - wikijs-net
+      - pinto-llm-net
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8002' 2>/dev/null || exit 1"]
       interval: 30s
@@ -103,8 +103,8 @@ services:
     build:
       context: ./mcp-servers/tesseract-mcp
       dockerfile: Dockerfile
-    image: wiki-js-tesseract-mcp:latest
-    container_name: wikijs_tesseract_mcp
+    image: pinto-llm-tesseract-mcp:latest
+    container_name: pinto_llm_tesseract_mcp
     ports:
       - "${TESSERACT_MCP_PORT:-8003}:8003"
     restart: unless-stopped
@@ -118,7 +118,7 @@ services:
     volumes:
       - ./to_ingest:/data/shared:ro
     networks:
-      - wikijs-net
+      - pinto-llm-net
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8003' 2>/dev/null || exit 1"]
       interval: 30s
@@ -132,8 +132,8 @@ services:
     build:
       context: ./mcp-servers/enrichment-pipeline
       dockerfile: Dockerfile
-    image: wiki-js-enrichment-pipeline:latest
-    container_name: wikijs_enrichment
+    image: pinto-llm-enrichment-pipeline:latest
+    container_name: pinto_llm_enrichment
     depends_on:
       qdrant-db:
         condition: service_healthy
@@ -159,7 +159,7 @@ services:
       - enrichment_data:/data
       - ./knowledge:/app/knowledge:rw
     networks:
-      - wikijs-net
+      - pinto-llm-net
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8004' 2>/dev/null || exit 1"]
       interval: 30s
@@ -174,8 +174,8 @@ services:
     build:
       context: ./tests
       dockerfile: Dockerfile.test
-    image: wiki-js-test-runner:latest
-    container_name: wikijs_test_runner
+    image: pinto-llm-test-runner:latest
+    container_name: pinto_llm_test_runner
     profiles: ["test", "integration"]
     depends_on:
       qdrant-db:
@@ -192,11 +192,11 @@ services:
       - ./mcp-servers/ingestion-pipeline/src:/app/ingestion_pipeline:ro
       - ./tests/test-data:/data/test-data:ro
     networks:
-      - wikijs-net
+      - pinto-llm-net
     command: pytest tests/ -v --tb=short
 
 networks:
-  wikijs-net:
+  pinto-llm-net:
     driver: bridge
 
 volumes:

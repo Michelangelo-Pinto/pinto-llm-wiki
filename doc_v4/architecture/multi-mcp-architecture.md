@@ -1,6 +1,6 @@
 # MCP Server Architecture v4
 
-wiki-js-mcp v4 uses 3 independent MCP servers plus Qdrant vector DB, running in 4 Docker containers.
+pinto-llm-wiki v4 uses 3 independent MCP servers plus Qdrant vector DB, running in 4 Docker containers.
 
 ## Overview
 

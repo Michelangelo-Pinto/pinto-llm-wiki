@@ -1,6 +1,6 @@
 # Qdrant MCP Server
 
-*Container: `wikijs_qdrant_mcp` | Port: `8001` | Transport: SSE | Tools: 8*
+*Container: `pinto_llm_qdrant_mcp` | Port: `8001` | Transport: SSE | Tools: 8*
 
 MCP server wrapping Qdrant vector database REST API. Replaces the v2 embedded vector engine (sentence-transformers + SQLite PageVector).
 
@@ -9,7 +9,7 @@ MCP server wrapping Qdrant vector database REST API. Replaces the v2 embedded ve
 ```yaml
 qdrant-mcp:
   build: ./mcp-servers/qdrant-mcp
-  image: wiki-js-qdrant-mcp:latest
+  image: pinto-llm-qdrant-mcp:latest
   ports: ["8001:8001"]
   depends_on: [qdrant-db:healthy]
   environment:

@@ -1,6 +1,6 @@
 # Ingestion Pipeline Design
 
-Technical design of the document ingestion pipeline (`wikijs_ingestion` container, port 8002). Covers the 6-stage pipeline, OCR routing, chunking algorithm, idempotency, and error handling.
+Technical design of the document ingestion pipeline (`pinto_llm_ingestion` container, port 8002). Covers the 6-stage pipeline, OCR routing, chunking algorithm, idempotency, and error handling.
 
 > For tool signatures and container config, see [Ingestion Pipeline MCP](../mcp-servers/ingestion-pipeline-mcp.md).
 > For usage workflows, see [OCR and Ingestion Workflows](../guides/ocr-and-ingestion-workflows.md).

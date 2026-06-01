@@ -8,12 +8,12 @@
 *.db
 *.sqlite
 *.sqlite3
-wikijs_mappings.db
+pinto_llm_mappings.db
 
 # Logs
 *.log
 logs/
-wikijs_mcp.log
+pinto_llm_mcp.log
 
 # Python
 __pycache__/
@@ -49,7 +49,7 @@ mcp-servers/wiki-js-mcp/venv/
 mcp-servers/wiki-js-mcp/.env
 mcp-servers/wiki-js-mcp/logs/
 mcp-servers/wiki-js-mcp/*.db
-mcp-servers/wiki-js-mcp/wikijs_mappings.db
+mcp-servers/wiki-js-mcp/pinto_llm_mappings.db
 
 # Poetry
 poetry.lock
@@ -97,7 +97,7 @@ temp/
 
 # Docker volumes
 postgres_data/
-wikijs_data/
+pinto_llm_data/
 mcp_data/
 mcp_logs/
 qdrant_data/

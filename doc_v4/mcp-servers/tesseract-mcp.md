@@ -1,6 +1,6 @@
 # Tesseract MCP Server
 
-*Container: `wikijs_tesseract_mcp` | Port: `8003` | Transport: SSE | Tools: 7*
+*Container: `pinto_llm_tesseract_mcp` | Port: `8003` | Transport: SSE | Tools: 7*
 
 MCP server for OCR text extraction and document type detection using Tesseract.
 
@@ -11,7 +11,7 @@ MCP server for OCR text extraction and document type detection using Tesseract.
 ```yaml
 tesseract-mcp:
   build: ./mcp-servers/tesseract-mcp
-  image: wiki-js-tesseract-mcp:latest
+  image: pinto-llm-tesseract-mcp:latest
   ports: ["8003:8003"]
   environment:
     MCP_HOST: 0.0.0.0

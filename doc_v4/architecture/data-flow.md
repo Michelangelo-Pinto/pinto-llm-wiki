@@ -1,6 +1,6 @@
 # Data Flow
 
-Request lifecycle diagrams for major operations in wiki-js-mcp v4. Each section covers a key workflow with a mermaid sequence diagram showing the actors and data transformations involved.
+Request lifecycle diagrams for major operations in pinto-llm-wiki v4. Each section covers a key workflow with a mermaid sequence diagram showing the actors and data transformations involved.
 
 ## Semantic Search (`qdrant_search`)
 

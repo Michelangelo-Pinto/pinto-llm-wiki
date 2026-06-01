@@ -1,8 +1,8 @@
 # 01 — Introduzione
 
-## Cos'e' wiki-js-mcp
+## Cos'e' pinto-llm-wiki
 
-**wiki-js-mcp v4** e' una **knowledge base file-system potenziata da AI**, accessibile e gestibile direttamente da un agente LLM all'interno del tuo IDE (Cursor, Claude Desktop, o qualsiasi client MCP).
+**pinto-llm-wiki v4** e' una **knowledge base file-system potenziata da AI**, accessibile e gestibile direttamente da un agente LLM all'interno del tuo IDE (Cursor, Claude Desktop, o qualsiasi client MCP).
 
 In pratica: puoi chiedere all'agente "cerca nella knowledge base tutto quello che sappiamo sull'argomento X", "crea un riassunto del documento Y", o "controlla se ci sono file obsoleti", e lui lo fa per te.
 
@@ -14,7 +14,7 @@ E i documenti grezzi (PDF, scansioni, DOCX) non sono cercabili per significato: 
 
 ## Il pattern LLM Wiki
 
-wiki-js-mcp implementa il **pattern LLM Wiki**: una knowledge base mantenuta interamente da un agente LLM. Tre livelli:
+pinto-llm-wiki implementa il **pattern LLM Wiki**: una knowledge base mantenuta interamente da un agente LLM. Tre livelli:
 
 | Livello | Chi lo gestisce | Cosa contiene |
 |---------|----------------|---------------|

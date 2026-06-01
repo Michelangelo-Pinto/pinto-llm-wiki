@@ -1,9 +1,9 @@
 ---
-description: wiki-js-mcp v4 project overview — always active
+description: pinto-llm-wiki v4 project overview — always active
 alwaysApply: true
 ---
 
-# wiki-js-mcp v4 — Panoramica
+# pinto-llm-wiki v4 — Panoramica
 
 **4 server MCP, 26 tool totali, transport SSE.**
 
@@ -11,10 +11,10 @@ alwaysApply: true
 
 | Server | Container | Porta | Prefisso | Tool |
 |--------|-----------|-------|----------|------|
-| Qdrant MCP | `wikijs_qdrant_mcp` | 8001 | `qdrant_*` | 8 |
-| Ingestion Pipeline | `wikijs_ingestion` | 8002 | `ingest_*` | 7 |
-| Tesseract MCP | `wikijs_tesseract_mcp` | 8003 | `ocr_*` | 7 |
-| Enrichment Pipeline | `wikijs_enrichment` | 8004 | `enrich_*` | 4 |
+| Qdrant MCP | `pinto_llm_qdrant_mcp` | 8001 | `qdrant_*` | 8 |
+| Ingestion Pipeline | `pinto_llm_ingestion` | 8002 | `ingest_*` | 7 |
+| Tesseract MCP | `pinto_llm_tesseract_mcp` | 8003 | `ocr_*` | 7 |
+| Enrichment Pipeline | `pinto_llm_enrichment` | 8004 | `enrich_*` | 4 |
 
 Tutti su path `/sse`. Stack: 5 container (qdrant-db + 4 MCP server).
 

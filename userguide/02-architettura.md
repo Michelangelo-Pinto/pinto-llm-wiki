@@ -2,7 +2,7 @@
 
 ## Come funziona per un umano
 
-wiki-js-mcp v4 e' composto da **3 server MCP indipendenti**, ciascuno specializzato in una funzione. Tu (o meglio, il tuo agente LLM) parli con questi server tramite il protocollo MCP (Model Context Protocol) in modalita' **SSE** (Server-Sent Events). I server girano in **4 container Docker**.
+pinto-llm-wiki v4 e' composto da **3 server MCP indipendenti**, ciascuno specializzato in una funzione. Tu (o meglio, il tuo agente LLM) parli con questi server tramite il protocollo MCP (Model Context Protocol) in modalita' **SSE** (Server-Sent Events). I server girano in **4 container Docker**.
 
 Il concetto chiave: l'agente LLM **orchestra** i 3 server. Tu chiedi cose in linguaggio naturale e l'agente decide quali tool chiamare, su quale server, in quale ordine.
 

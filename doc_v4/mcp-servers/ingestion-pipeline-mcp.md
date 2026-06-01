@@ -1,6 +1,6 @@
 # Ingestion Pipeline MCP Server
 
-*Container: `wikijs_ingestion` | Port: `8002` | Transport: SSE | Tools: 7*
+*Container: `pinto_llm_ingestion` | Port: `8002` | Transport: SSE | Tools: 7*
 
 Document ingestion pipeline: detect → extract text (with OCR for scanned docs) → chunk → embed → upsert to Qdrant.
 
@@ -11,7 +11,7 @@ Document ingestion pipeline: detect → extract text (with OCR for scanned docs)
 ```yaml
 ingestion-pipeline:
   build: ./mcp-servers/ingestion-pipeline
-  image: wiki-js-ingestion-pipeline:latest
+  image: pinto-llm-ingestion-pipeline:latest
   ports: ["8002:8002"]
   depends_on: [qdrant-db:healthy]
   environment:
