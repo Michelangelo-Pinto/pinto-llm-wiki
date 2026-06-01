@@ -1,21 +1,21 @@
 # 04 — Primo flusso
 
-Ecco un walkthrough end-to-end del flusso piu' tipico: prendere un PDF, ingerirlo, creare una pagina wiki, interrogare la conoscenza e verificare lo stato di salute.
+Ecco un walkthrough end-to-end del flusso piu' tipico: prendere un PDF, ingerirlo, cercarlo semanticamente e creare un file di conoscenza.
 
 ## Scenario
 
 Hai un PDF (es. `relazione-2024.pdf`) in `/data/shared` e vuoi:
 1. Ingerirlo per renderlo cercabile
-2. Creare una pagina wiki che lo riassuma
-3. Fare una ricerca semantica per verificare che sia indicizzato
-4. Controllare lo stato della wiki
+2. Cercare informazioni al suo interno
+3. Creare un file di riepilogo nella knowledge base
+4. Verificare che tutto sia coerente
 
 ## Passo 1 — Ingerire il documento
 
 Copia il PDF nella cartella condivisa:
 
 ```bash
-cp relazione-2024.pdf /data/shared/
+cp relazione-2024.pdf to_ingest/
 ```
 
 In Cursor, scrivi all'agente:
@@ -24,32 +24,43 @@ In Cursor, scrivi all'agente:
 
 L'agente chiamera' `ingest_document` sulla Ingestion Pipeline, che esegue il pipeline completo (detect → extract → chunk → embed → upsert). Se il PDF contiene scansioni, Tesseract entrera' in azione automaticamente per l'OCR.
 
-## Passo 2 — Creare una pagina wiki
+## Passo 2 — Cercare informazioni
 
-> **Prompt:** Crea una pagina wiki intitolata "Relazione 2024" che riassuma il contenuto del documento `/data/shared/relazione-2024.pdf`.
+> **Prompt:** Cerca informazioni sul tema principale della relazione 2024.
 
-L'agente usera' `wikijs_create_page` (o `wikijs_create_or_update_page`) per creare la pagina su Wiki.js, recuperando il contenuto rilevante da Qdrant.
+L'agente chiamera' `qdrant_search` e ti restituira' i risultati con i punteggi di similarita'. Puoi anche chiedere una ricerca testuale: _"Cerca tutti i file che parlano di X"_.
 
-## Passo 3 — Interrogare la conoscenza
+## Passo 3 — Creare un file di conoscenza
 
-> **Prompt:** Cerca nella wiki informazioni sul tema principale della relazione 2024.
+> **Prompt:** Crea un file `knowledge/ingested/2026-06-01-relazione/riepilogo.md` con un riassunto del documento e i metadati della fonte.
 
-L'agente chiamera' `wikijs_smart_query` (o una combinazione di `qdrant_search` + ricerca wiki) e ti restituira' un riassunto basato sui chunk indicizzati.
+L'agente scrivera' il file `.md` con frontmatter completo:
+```yaml
+---
+title: "Relazione 2024"
+source_type: file
+source_file: "relazione-2024.pdf"
+source_name: "Relazione Annuale 2024"
+fetched_at: "2026-06-01"
+---
+```
 
-## Passo 4 — Verificare la salute della wiki
+E aggiornera' `knowledge/ingested/index.md` con la nuova entry.
 
-> **Prompt:** Fai un health check della wiki e dimmi se ci sono problemi.
+## Passo 4 — Verificare la consistenza
 
-L'agente chiamera' `wikijs_wiki_health` e ti dara' un report: pagine orfane, backlink mancanti, pagine vuote o obsolete.
+> **Prompt:** Controlla che tutti i file in knowledge/ abbiano il frontmatter corretto e siano elencati negli index.md delle loro categorie.
 
-## Passo 5 — Web ingestion (portare una pagina web nella wiki)
+L'agente fara' un lint della knowledge base: `Glob`, `Grep`, verifica dei frontmatter e degli index.
 
-> **Prompt:** Vai su https://it.wikipedia.org/wiki/Grafo_della_conoscenza, estrai il contenuto e crea una pagina wiki.
-> (oppure: "usa il browser di Cursor e portami questo articolo nella wiki")
+## Passo 5 — Web ingestion (portare una pagina web nella KB)
 
-L'agente aprira' il browser MCP (Playwright o Cursor integrato), navighera' all'URL, estrarra' il contenuto, lo formattera' in markdown e creera' una pagina wiki con l'attribuzione della fonte nel frontmatter (`source_type: "web"`, `source_url`, `source_name`, `fetched_at`).
+> **Prompt:** Vai su https://it.wikipedia.org/wiki/Grafo_della_conoscenza, estrai il contenuto e salvalo nella knowledge base.
+> (oppure: "usa il browser di Cursor e portami questo articolo nella KB")
 
-Per contenuti complessi (molte immagini, PDF), l'agente puo' usare il Percorso B (salva file → chiedi copia in `/data/shared/` → `ingest_document`). Vedi `.cursor/rules/35-web-ingestion.mdc`.
+L'agente aprira' il browser MCP, navighera' all'URL, estrarra' il contenuto, lo formattera' in markdown e creera' un file in `knowledge/ingested/` con l'attribuzione della fonte.
+
+Per contenuti complessi, l'agente puo' usare il Percorso B (salva file → chiedi copia in `/data/shared/` → `ingest_document`). Vedi `.cursor/rules/35-web-ingestion.mdc`.
 
 ## Riassunto del flusso
 
@@ -60,23 +71,23 @@ PDF in /data/shared
 ingest_document ──► OCR (se serve) ──► chunk + embed ──► Qdrant
     │
     ▼
-wikijs_create_page ──► Wiki.js (pagina creata, linkata)
+qdrant_search ──► recupera informazioni per significato
     │
     ▼
-wikijs_smart_query ──► recupera informazioni per significato
+Write ──► knowledge/ingested/.../riepilogo.md (file creato, indicizzato)
     │
     ▼
-wikijs_wiki_health ──► report salute wiki
+Grep + Glob ──► verifica consistenza
 ```
 
 ## Cosa fare se qualcosa non funziona
 
 - **Errore "file not found"**: assicurati che il file sia in `/data/shared` (il percorso dentro il container)
-- **Timeout sull'ingestion**: i PDF grandi o scansionati possono richiedere tempo; usa `ingest_status` per monitorare
+- **Timeout sull'ingestion**: i PDF grandi o scansionati possono richiedere tempo; usa `ingest_get_status` per monitorare
 - **Nessun risultato nella ricerca**: verifica che l'ingestion sia completata e che la collezione Qdrant esista (`qdrant_list_collections`)
 
 ---
 
-*Approfondisci in: [doc_v3/guides/agent-orientation.md](../doc_v3/guides/agent-orientation.md) · [doc_v3/guides/llm-wiki-workflows.md](../doc_v3/guides/llm-wiki-workflows.md) · [doc_v3/guides/file-paths-and-volumes.md](../doc_v3/guides/file-paths-and-volumes.md)*
+*Approfondisci in: [doc_v4/guides/agent-orientation.md](../doc_v4/guides/agent-orientation.md) · [doc_v4/guides/llm-wiki-workflows.md](../doc_v4/guides/llm-wiki-workflows.md) · [doc_v4/guides/file-paths-and-volumes.md](../doc_v4/guides/file-paths-and-volumes.md)*
 
 *Precedente: [03 — Installazione e setup](03-installazione-e-setup.md) · Prossimo: [05 — Casi d'uso e FAQ](05-casi-duso-e-faq.md) · Torna all'[indice](index.md)*

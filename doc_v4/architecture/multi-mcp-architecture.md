@@ -1,35 +1,19 @@
-# Multi-MCP Architecture
+# MCP Server Architecture v4
 
-Distributed service architecture for wiki-js-mcp v3.
+wiki-js-mcp v4 uses 3 independent MCP servers plus Qdrant vector DB, running in 4 Docker containers.
 
 ## Overview
 
-v3 replaces the monolithic v2 MCP server with 4 independent MCP servers, each owning a specific domain:
+```
+Agent (Cursor IDE / LLM)
+ │
+ ├── SSE :8001 → Qdrant MCP ────→ Qdrant DB :6334 (semantic search)
+ ├── SSE :8002 → Ingestion Pipeline ─→ Qdrant DB :6334 (document storage)
+ │                                    └→ Tesseract (in-process OCR)
+ └── SSE :8003 → Tesseract MCP (agent-facing OCR)
+```
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      LLM Agent / Cursor                     │
-└────┬──────────┬──────────┬──────────┬───────────────────────┘
-     │SSE       │SSE       │SSE       │SSE
-     ▼          ▼          ▼          ▼
-┌─────────┐┌─────────┐┌─────────┐┌──────────────┐
-│Wiki.js  ││Qdrant   ││Tesseract││Ingestion     │
-│MCP :8000││MCP :8001││MCP :8003││Pipeline :8002│
-└────┬────┘└────┬────┘└─────────┘└──────┬───────┘
-     │GraphQL   │qdrant-         pytesseract│qdrant-client
-     │          │client          (in-proc)  │
-     ▼          ▼                           ▼
-┌─────────┐┌──────────┐              ┌──────────┐
-│Wiki.js  ││Qdrant DB │              │Qdrant DB │
-│:3000    ││REST :6334│              │REST :6334│
-└────┬────┘└──────────┘              └──────────┘
-     │
-     ▼
-┌──────────┐
-│PostgreSQL│
-│:5432     │
-└──────────┘
-```
+The knowledge base lives on the filesystem at `knowledge/`, organized as markdown by category with `index.md` routing.
 
 ## Service Design
 
@@ -37,36 +21,34 @@ v3 replaces the monolithic v2 MCP server with 4 independent MCP servers, each ow
 
 | Principle | Implementation |
 |-----------|---------------|
-| **Separation of concerns** | Each MCP server owns one domain (wiki, search, OCR, ingestion) |
-| **Independent scaling** | Servers can be restarted independently without affecting others |
+| **Separation of concerns** | Each MCP server owns one domain (search, ingestion, OCR) |
+| **Independent scaling** | Servers can be restarted independently |
 | **MCP-native** | Standard FastMCP SSE transport for Cursor IDE integration |
 | **Direct communication** | Intra-service calls use native libraries (`qdrant-client`, `pytesseract`), not MCP |
 
 ### Communication Patterns
 
 1. **Agent → MCP Server**: SSE (Server-Sent Events) via FastMCP
-2. **Wiki.js MCP → Wiki.js**: GraphQL API over HTTP
-3. **Wiki.js MCP → Qdrant**: `qdrant-client` library, REST :6334
-4. **Qdrant MCP → Qdrant**: `qdrant-client` library, REST :6334
-5. **Ingestion Pipeline → Qdrant**: `qdrant-client` library, REST :6334
-6. **Ingestion Pipeline → Tesseract**: `pytesseract` in-process (no HTTP/SSE overhead for batch processing)
+2. **Qdrant MCP → Qdrant**: `qdrant-client` library, REST :6334
+3. **Ingestion Pipeline → Qdrant**: `qdrant-client` library, REST :6334
+4. **Ingestion Pipeline → Tesseract**: `pytesseract` in-process (no HTTP/SSE overhead for batch processing)
 
 ## Collections
 
-Qdrant stores two collections. For full schema details (payload fields, HNSW config, backup), see [Qdrant Vector DB](qdrant-vector-db.md).
+Qdrant stores one collection for document chunks. For full schema details, see [Qdrant Vector DB](qdrant-vector-db.md).
 
 | Collection | Used by | Purpose |
 |------------|---------|---------|
-| `wiki_pages` | Wiki.js MCP | Semantic search via `wikijs_smart_query` |
-| `documents` | Ingestion Pipeline | Ingested document chunks |
+| `documents` | Ingestion Pipeline | Ingested document chunks for semantic search |
 
 ## Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| External Qdrant | Replaces embedded vector engine. Native KNN, payload filtering, multi-collection. |
+| External Qdrant | Native KNN, payload filtering. Replaces embedded vector engine from v2. |
 | Separate MCP servers | Each domain is an independent service with its own Dockerfile and lifecycle. |
 | Tesseract over PaddleOCR | 10x smaller image (~300 MB vs 5 GB), 8x faster CPU inference, no GPU/PyTorch dependency. |
 | Direct pytesseract in pipeline | No MCP overhead for batch document processing. tesseract-mcp is for agent-facing OCR. |
-| Qdrant-client in wikijs-mcp | Direct Qdrant calls for `smart_query` latency. Qdrant MCP is for agent-facing vector operations. |
-| all-MiniLM-L6-v2 | 384-dim embeddings, fast, Qdrant's default model. Consistent across all services. |
+| File-system knowledge base | Knowledge stored as markdown in `knowledge/`. No database-backed wiki needed. |
+| all-MiniLM-L6-v2 | 384-dim embeddings, fast, consistent across all services. |
+| `documents` collection | Single Qdrant collection for all ingested content. Filterable by `file_type`, `source_file`, etc. |

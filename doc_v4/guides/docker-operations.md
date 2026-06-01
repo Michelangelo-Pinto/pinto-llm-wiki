@@ -2,7 +2,7 @@
 
 For stack start/stop/rebuild, see [Stack Lifecycle Guide](stack-lifecycle.md).
 
-Commands for building, testing, and managing the 5-container Docker stack.
+Commands for building, testing, and managing the 4-container Docker stack.
 
 ## Quick Reference
 
@@ -15,7 +15,7 @@ docker compose ps
 
 # View logs for a service
 docker compose logs qdrant-mcp
-docker compose logs qdrant-mcp
+docker compose logs ingestion-pipeline
 
 # Stop everything
 docker compose down
@@ -58,9 +58,9 @@ docker compose up -d
 docker compose --profile integration run --rm test-runner \
   pytest tests/integration/stack/ -v -m integration_stack
 
-# Run wiki regression tests
+# Run SSE smoke tests
 docker compose --profile integration run --rm test-runner \
-  pytest tests/regression/ -v -m regression
+  pytest tests/smoke/ -v -m smoke
 ```
 
 See [Testing Guide](../reference/testing.md) for detailed test documentation.
@@ -72,13 +72,9 @@ See [Testing Guide](../reference/testing.md) for detailed test documentation.
 docker compose ps
 
 # Check MCP server SSE endpoints
-curl http://localhost:8000/sse   # Wiki.js MCP
 curl http://localhost:8001/sse   # Qdrant MCP
 curl http://localhost:8002/sse   # Ingestion Pipeline
 curl http://localhost:8003/sse   # Tesseract MCP
-
-# Wiki.js web UI
-curl http://localhost:3000
 ```
 
 ## Logs
@@ -100,22 +96,9 @@ docker compose logs --tail 100
 # View ingestion SQLite database
 docker compose exec ingestion-pipeline sqlite3 /data/ingestion.db ".tables"
 
-# View enrichment SQLite database
-docker compose exec enrichment-pipeline sqlite3 /data/enrichment.db ".tables"
-```
-
-## Database Inspection
-
-```bash
-# View ingestion SQLite database
-docker compose exec ingestion-pipeline sqlite3 /data/ingestion.db ".tables"
-
 # Qdrant collections (via REST)
 curl http://localhost:6334/collections
-curl http://localhost:6334/collections/wiki_pages
-
-# Ingestion database
-docker compose exec ingestion-pipeline sqlite3 /data/ingestion.db
+curl http://localhost:6334/collections/documents
 ```
 
 ## Troubleshooting
@@ -125,14 +108,6 @@ docker compose exec ingestion-pipeline sqlite3 /data/ingestion.db
 ```bash
 docker compose logs <service-name>
 docker compose restart <service-name>
-```
-
-### Wiki.js setup fails
-
-If the `setup` container exits with error, Wiki.js may already be initialized. Check:
-```bash
-docker compose logs setup
-curl http://localhost:3000
 ```
 
 ### Qdrant connection issues

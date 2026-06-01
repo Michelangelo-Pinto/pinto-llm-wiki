@@ -1,6 +1,6 @@
-# Guida Utente di wiki-js-mcp v3
+# Guida Utente di wiki-js-mcp v4
 
-Benvenuto. Questa guida e' il punto di partenza per **operatori umani** che vogliono capire e usare **wiki-js-mcp** senza perdersi nei dettagli tecnici. Ogni pagina e' autoconclusiva e rimanda a `doc_v3/` quando serve approfondire.
+Benvenuto. Questa guida e' il punto di partenza per **operatori umani** che vogliono capire e usare **wiki-js-mcp** senza perdersi nei dettagli tecnici. Ogni pagina e' autoconclusiva e rimanda a `doc_v4/` quando serve approfondire.
 
 ## A chi serve questa guida
 
@@ -23,7 +23,7 @@ Non devi leggere tutto in ordine: ogni capitolo e' autonomo e parte dal presuppo
 ## Link rapidi
 
 - [README](../README.md) — panoramica del progetto su GitHub
-- [doc_v3/](../doc_v3/index.md) — documentazione tecnica completa (in inglese)
+- [doc_v4/](../doc_v4/index.md) — documentazione tecnica completa (in inglese)
 - [AGENTS.md](../AGENTS.md) — istruzioni per l'agente LLM
 
 ---

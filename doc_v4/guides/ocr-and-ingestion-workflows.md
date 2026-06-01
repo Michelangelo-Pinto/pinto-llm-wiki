@@ -141,12 +141,10 @@ result = ingest_document(file_path="architecture.pdf")
 # 2. Search for relevant chunks
 chunks = qdrant_search("documents", "microservices architecture", limit=5)
 
-# 3. Create a wiki page from the best chunks
+# 3. Write a knowledge file with the best chunks
 content = "\n\n".join(c["payload"]["text"] for c in chunks["results"])
-wikijs_create_page(
-    title="Architecture Overview (from architecture.pdf)",
-    content=content
-)
+# Use Write tool to create knowledge/ingested/.../architecture.md
+# with frontmatter including source_type, source_file, etc.
 ```
 
 ## Supported Languages

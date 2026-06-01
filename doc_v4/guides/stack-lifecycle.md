@@ -1,6 +1,6 @@
 # Stack Lifecycle Guide
 
-Commands to build, start, stop, and rebuild the 5-container wiki-js-mcp v4 stack. Read this before operating MCP tools or after changing server code.
+Commands to build, start, stop, and rebuild the 4-container wiki-js-mcp v4 stack. Read this before operating MCP tools or after changing server code.
 
 For tests, DB inspection, and advanced debugging, see [Docker Operations](docker-operations.md).
 
@@ -9,7 +9,7 @@ For tests, DB inspection, and advanced debugging, see [Docker Operations](docker
 - **Cold start** — first time or after `docker compose down`
 - **After code changes** — rebuilt MCP server images (`mcp-servers/`)
 - **Before integration tests** — full stack must be running
-- **Connection errors** — MCP tools fail with connection refused / timeout on ports 8001–8004
+- **Connection errors** — MCP tools fail with connection refused / timeout on ports 8001–8003
 
 ## Prerequisites
 
@@ -27,11 +27,10 @@ See [Quickstart](quickstart.md) for first-time setup.
 | `qdrant-mcp` | `wikijs_qdrant_mcp` | 8001 | running |
 | `ingestion-pipeline` | `wikijs_ingestion` | 8002 | running |
 | `tesseract-mcp` | `wikijs_tesseract_mcp` | 8003 | running |
-| `enrichment-pipeline` | `wikijs_enrichment` | 8004 | running |
 
-**Startup order:** `qdrant-db` → `qdrant-mcp` / `ingestion-pipeline` → `tesseract-mcp` / `enrichment-pipeline`.
+**Startup order:** `qdrant-db` → `qdrant-mcp` / `ingestion-pipeline` → `tesseract-mcp`.
 
-Four services are built from source (`qdrant-mcp`, `ingestion-pipeline`, `tesseract-mcp`, `enrichment-pipeline`); `qdrant-db` uses a pre-built Qdrant image.
+Three services are built from source (`qdrant-mcp`, `ingestion-pipeline`, `tesseract-mcp`); `qdrant-db` uses a pre-built Qdrant image.
 
 ## Core Commands
 
@@ -70,7 +69,7 @@ docker compose up -d --build
 # Stop all containers (volumes preserved)
 docker compose down
 
-# Stop and delete all volumes — DESTRUCTIVE: wipes Qdrant vectors, ingestion SQLite, enrichment tracking
+# Stop and delete all volumes — DESTRUCTIVE: wipes Qdrant vectors, ingestion SQLite
 docker compose down -v
 ```
 
@@ -97,14 +96,13 @@ docker compose logs --tail 50 ingestion-pipeline
 After `docker compose up -d`, wait ~60 seconds for health checks, then:
 
 ```bash
-# Expect 5 Up
+# Expect 4 Up
 docker compose ps
 
 # MCP SSE endpoints (HTTP status check)
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8001/sse   # Qdrant MCP
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8002/sse   # Ingestion Pipeline
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8003/sse   # Tesseract MCP
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8004/sse   # Enrichment Pipeline
 ```
 
 Non-200 responses on MCP ports usually mean the service is still starting — wait and retry.
@@ -119,7 +117,6 @@ Non-200 responses on MCP ports usually mean the service is still starting — wa
 | Qdrant unreachable from MCP | `curl http://localhost:6334/collections`; restart with `docker compose restart qdrant-db qdrant-mcp` |
 | MCP tool connection refused | `docker compose ps`; start stack with `docker compose up -d` |
 | Need fresh database | `docker compose down -v` then `docker compose up -d` (data loss) |
-| Enrichment fails with API key error | Set `OPENAI_API_KEY` in `.env`. Without it, enrichment falls back to heuristics |
 
 ## Agent Boundaries
 
@@ -139,8 +136,8 @@ After starting the stack, always verify health (`docker compose ps` + curl check
 |--------|-------|---------|
 | `qdrant_data` | `/qdrant/storage` | Qdrant vector data |
 | `qdrant_snapshots` | `/qdrant/snapshots` | Qdrant backup snapshots |
+| `shared_data` | `/data/shared` | Shared files for ingestion (read-only) |
 | `ingestion_data` | `/data` | Ingestion SQLite (`ingestion.db`) |
-| `enrichment_data` | `/data` | Enrichment SQLite (`enrichment.db`) |
 
 ## See Also
 

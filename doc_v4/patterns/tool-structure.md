@@ -1,6 +1,6 @@
 # Tool Structure
 
-Every MCP tool across all 4 v4 servers follows a consistent pattern.
+Every MCP tool across all 3 v4 servers follows a consistent pattern.
 
 ## Core pattern
 
@@ -9,7 +9,6 @@ Every MCP tool across all 4 v4 servers follows a consistent pattern.
 async def tool_name(params) -> str:
     """Docstring describing args and return value."""
     try:
-        await wikijs.authenticate()  # Wiki.js MCP only; others verify backend
         # ... business logic ...
         logger.info("summary: %d items", count)
         return json.dumps(result)
@@ -20,57 +19,15 @@ async def tool_name(params) -> str:
 ```
 
 Key points:
-- **Always `async`**: Wiki.js MCP tools are `async def`. Qdrant, Ingestion, and Tesseract tools are synchronous `def` wrapped by FastMCP.
 - **Return type `str`**: JSON-encoded string, never a dict.
 - **Errors as JSON**: `{"error": "..."}`, never raised to the framework.
 - **Log at INFO** for completion summaries, **ERROR** for failures.
 
-## Authentication (Wiki.js MCP)
-
-[`client.py`](../../mcp-servers/wiki-js-mcp/src/wiki_mcp_server/client.py)
-
-Every Wiki.js tool calls `await wikijs.authenticate()` as its first meaningful action.
-
-```python
-async def authenticate(self) -> bool:
-    if self.authenticated:          # Fast-path check
-        return True
-    async with self._auth_lock:     # Double-checked locking
-        if self.authenticated:
-            return True
-        # ... JWT login or Bearer token ...
-        self.authenticated = True
-```
-
-- **Double-checked locking**: Fast-path before lock, re-check inside lock. Prevents race on concurrent auth.
-- **Two strategies**: `WIKIJS_TOKEN` / `WIKIJS_API_KEY` (preferred) or username/password login with JWT extraction.
-
-Other servers authenticate differently:
-- **Qdrant MCP**: Verifies Qdrant connectivity on startup (no user auth)
-- **Ingestion Pipeline**: Direct Qdrant + filesystem access
-- **Tesseract MCP**: Stateless; reads files from shared volume
-
 ## Tool registration
 
-### Wiki.js MCP
+### Qdrant MCP, Ingestion Pipeline, Tesseract MCP
 
-[`server.py`](../../mcp-servers/wiki-js-mcp/src/wiki_mcp_server/server.py)
-
-```python
-mcp = FastMCP("Wiki.js Integration")
-
-def _register_tools() -> None:
-    from wiki_mcp_server import (
-        tools_deletion, tools_files, tools_graph,
-        tools_hierarchy, tools_pages, tools_system,
-    )
-```
-
-Side-effect registration: `@mcp.tool()` decorator fires on import. `_register_tools()` just imports all modules.
-
-### Other servers
-
-Qdrant, Ingestion, and Tesseract register tools explicitly in `server.py`:
+All tools are defined as plain functions in `tools.py` and registered explicitly in `server.py`:
 
 ```python
 mcp.tool()(qdrant_search)
@@ -78,29 +35,47 @@ mcp.tool()(ingest_document)
 mcp.tool()(ocr_extract_text)
 ```
 
+## Server-specific patterns
+
+### Qdrant MCP
+
+- Verifies Qdrant connectivity on startup
+- Uses lazy-loaded `SentenceTransformer("all-MiniLM-L6-v2")` for embedding
+- Operations: collection CRUD, vector search, upsert, scroll, delete
+
+### Ingestion Pipeline
+
+- Direct Qdrant + filesystem access
+- Uses `pytesseract` in-process for OCR (no MCP overhead)
+- SHA-256 content hash for idempotent ingestion
+- SQLite tracking via `ingestion.db`
+
+### Tesseract MCP
+
+- Stateless — reads files from shared volume `/data/shared/`
+- Default languages: `eng+ita`
+- Image preprocessing pipeline: grayscale → deskew → threshold → denoise → sharpen
+
 ## JSON return format
 
 Success:
 ```json
-{"pageId": 7, "title": "Auth", "status": "created"}
+{"status": "completed", "chunks_created": 12}
 ```
 
 Error:
 ```json
-{"error": "Failed to create page: ..."}
+{"error": "Failed to process: ..."}
 ```
 
 Every return value goes through `json.dumps(...)`. No tool returns a raw Python dict or list.
 
-## Tool categories (Wiki.js MCP)
+## Tool categories per server
 
-| Module | File | Count | Purpose |
+| Server | File | Count | Purpose |
 |--------|------|-------|---------|
-| Page tools | `tools_pages.py` | 26 | CRUD, search, bulk, backlinks, stats, tags, smart_query, wiki tools, import/export |
-| Graph tools | `tools_graph.py` | 3 | Link extraction, BFS, shortest path |
-| Hierarchy | `tools_hierarchy.py` | 4 | Nested pages, repo structures |
-| File integration | `tools_files.py` | 4 | File-to-page mapping, sync |
-| Deletion | `tools_deletion.py` | 4 | Delete operations + cleanup |
-| System | `tools_system.py` | 3 | Connection status, repo context, collections |
+| Qdrant MCP | `tools.py` | 8 | Collection management, vector search, upsert, scroll |
+| Ingestion Pipeline | `tools.py` | 7 | Document detect, ingest, search, status, delete |
+| Tesseract MCP | `tools.py` | 7 | OCR extract, confidence, preprocessing, HOCR |
 
-See [Tool Catalog](../reference/tool-catalog.md) for all servers.
+See [Tool Catalog](../reference/tool-catalog.md) for all tools with full signatures.

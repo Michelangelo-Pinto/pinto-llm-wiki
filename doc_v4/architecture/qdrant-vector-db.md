@@ -1,6 +1,6 @@
 # Qdrant Vector Database
 
-v3 replaces the v2 embedded vector engine (sentence-transformers + SQLite PageVector) with a dedicated Qdrant vector database. Qdrant provides native KNN search, payload filtering, and multi-collection support.
+v4 uses Qdrant as the vector database for semantic search. Qdrant provides native KNN search, payload filtering, and multi-collection support. The embedded vector engine from v2 (sentence-transformers + SQLite PageVector) has been replaced.
 
 ## Container
 
@@ -24,28 +24,9 @@ qdrant-db:
 
 ## Collections
 
-### `wiki_pages`
-
-Used by Wiki.js MCP for semantic search via `wikijs_smart_query`.
-
-| Parameter | Value |
-|-----------|-------|
-| Vector size | 384 (all-MiniLM-L6-v2) |
-| Distance | Cosine |
-| On-disk payload | True |
-
-**Payload per point:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `page_id` | integer | Wiki.js page ID |
-| `title` | string | Page title |
-| `path` | string | Wiki path (e.g. `docs/auth/overview`) |
-| `locale` | string | Language code (`en`) |
-
 ### `documents`
 
-Used by Ingestion Pipeline for ingested document chunks.
+Used by Ingestion Pipeline for ingested document chunks. This is the primary collection for semantic search in v4.
 
 | Parameter | Value |
 |-----------|-------|
@@ -58,72 +39,64 @@ Used by Ingestion Pipeline for ingested document chunks.
 | Field | Type | Description |
 |-------|------|-------------|
 | `document_id` | string | Unique document identifier |
-| `chunk_index` | integer | Position within the document |
-| `file_type` | string | Source file type (`pdf`, `docx`, `md`, etc.) |
-| `source_path` | string | Original file path |
-| `text` | string | Chunk text content |
-
-## HNSW Configuration
-
-Qdrant uses HNSW (Hierarchical Navigable Small World) for approximate nearest neighbor search:
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `m` | 16 | Number of edges per node in the graph |
-| `ef_construct` | 100 | Size of the dynamic candidate list during construction |
-| `ef` | 100 | Size of the dynamic candidate list during search |
-
-Default values work well for the current scale. Tune `ef` higher for more accurate results at the cost of search latency.
-
-## Payload Indexes
-
-Create payload indexes for filter performance before bulk ingestion:
-
-```python
-from qdrant_client import QdrantClient
-
-client = QdrantClient(url="http://qdrant-db:6334")
-
-client.create_payload_index(
-    collection_name="documents",
-    field_name="document_id",
-    field_schema="keyword",
-)
-client.create_payload_index(
-    collection_name="documents",
-    field_name="file_type",
-    field_schema="keyword",
-)
-```
-
-## Backup and Restore
-
-```bash
-# Create snapshot
-curl -X POST http://localhost:6334/collections/wiki_pages/snapshots
-
-# List snapshots
-curl http://localhost:6334/collections/wiki_pages/snapshots
-
-# Snapshots are stored in the qdrant_snapshots volume
-```
+| `chunk_index` | integer | Position within document |
+| `source_file` | string | Original file path |
+| `file_type` | string | Detected file type (pdf, docx, md, etc.) |
+| `text` | string | Full chunk text |
+| `content_hash` | string | SHA-256 of document content (idempotency) |
 
 ## Embedding Model
 
-All services use `all-MiniLM-L6-v2` (SentenceTransformers):
+**all-MiniLM-L6-v2** from SentenceTransformers.
 
-- **Dimensions:** 384
-- **Model size:** ~80 MB
-- **Loading:** Lazy singleton in each service (Qdrant MCP, Ingestion Pipeline)
-- **Consistency:** Same model across all services ensures consistent vector space
+| Property | Value |
+|----------|-------|
+| Dimensions | 384 |
+| Model size | ~80 MB |
+| Normalization | L2 (cosine distance) |
+| Pre-loaded | Yes (Docker build time) |
+| Used by | Qdrant MCP, Ingestion Pipeline |
 
-## Why External Qdrant
+## HNSW Configuration
 
-| v2 (Embedded) | v3 (External Qdrant) |
-|---------------|---------------------|
-| SQLite `PageVector` table | Dedicated vector database |
-| Brute-force cosine similarity in Python | Native HNSW KNN search |
-| Single collection (`page_vectors`) | Multi-collection (`wiki_pages`, `documents`) |
-| No payload filtering | Rich payload filtering (keyword, range, geo) |
-| 1 MCP server (wiki-mcp) | 3 services access Qdrant (wiki-mcp, qdrant-mcp, ingestion) |
-| No snapshots/backup | Native snapshot API |
+Qdrant uses HNSW (Hierarchical Navigable Small World) index for approximate KNN:
+
+- `m`: 16 (number of edges per node)
+- `ef_construct`: 100 (build-time search width)
+- `ef`: 128 (query-time search width)
+
+These are Qdrant defaults and perform well for the current scale. Tuning may be needed for 1M+ vectors.
+
+## Backup
+
+Qdrant supports snapshot backups:
+
+```bash
+# Create a snapshot
+curl -X POST http://localhost:6334/collections/documents/snapshots
+
+# List snapshots
+curl http://localhost:6334/collections/documents/snapshots
+
+# Download a snapshot
+curl http://localhost:6334/collections/documents/snapshots/<snapshot_name> -o backup.snapshot
+```
+
+Docker volume: `qdrant_snapshots` is mounted at `/qdrant/snapshots` for snapshot storage.
+
+## v3 vs v4 Changes
+
+| Aspect | v3 | v4 |
+|--------|----|----|
+| Collections | `wiki_pages` + `documents` | `documents` only |
+| Embedding model | all-MiniLM-L6-v2 | all-MiniLM-L6-v2 (unchanged) |
+| Vector dimensions | 384 | 384 (unchanged) |
+| Distance | Cosine | Cosine (unchanged) |
+| Services accessing Qdrant | wiki-mcp, qdrant-mcp, ingestion | qdrant-mcp, ingestion |
+| `wiki_pages` collection | Used by Wiki.js MCP for page semantic search | Removed in v4 |
+
+## Related Documents
+
+- [Database](database.md) — Full storage overview (Qdrant + SQLite)
+- [Ingestion Pipeline Design](ingestion-pipeline-design.md) — How documents are chunked and embedded
+- [System Overview](system-overview.md) — Container topology

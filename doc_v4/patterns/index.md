@@ -1,47 +1,49 @@
 # Patterns
 
-Code patterns and design conventions across the v4 multi-MCP ecosystem.
+Code patterns and design conventions across the v4 MCP ecosystem.
 
-## Quick Navigation
+## Current v4 Patterns
 
-| Document | Description | Read when |
-|----------|-------------|-----------|
-| [Tool Structure](tool-structure.md) | Canonical tool pattern, auth, registration, JSON returns | Understanding how tools work across all 4 servers |
-| [GraphQL and DB](graphql-and-db.md) | Query constants, parallel gather, mutations, SQLite lifecycle | Working with Wiki.js GraphQL or SQLite |
-| [Caching and Hooks](caching-and-hooks.md) | Stats cache, BacklinkIndex, Qdrant indexing, fire-and-forget hooks | Understanding cache layers and side effects |
+### Tool Structure
 
-## Design Philosophy
+Every MCP tool follows a consistent pattern across all 3 servers. See [Tool Structure](tool-structure.md) for full details including the canonical tool signature, registration, and error handling.
 
-1. **Simplicity over premature optimization**: Cache only when measured performance requires it
-2. **Fire-and-forget hooks**: Side effects (backlinks, stats invalidation) must not fail the primary operation
-3. **Explicit session control**: One SQLite session per operation, always closed in `finally`
-4. **Uniform error handling**: All tools return JSON errors, never raise to the MCP framework
-5. **Lazy cross-module imports**: Heavy deps (SentenceTransformer, QdrantClient) imported inside functions
+### Qdrant Embedding
 
-## Communication Patterns
+- Model: `all-MiniLM-L6-v2` (384-dim vectors, Cosine distance)
+- Pre-loaded at Docker build time — no cold start
+- Used by: `qdrant-mcp` (search, upsert), `ingestion-pipeline` (embed chunks)
 
-### Agent-to-Server: SSE
+### Ingestion Chunking
 
-All 4 MCP servers expose SSE transport for Cursor/Claude integration on ports 8001-8004.
+- Target: 1500 chars per chunk, 200 char overlap
+- Hard cap: 2500 chars per chunk
+- Section-aware: respects PDF page boundaries, markdown headings
+- See [Ingestion Pipeline Design](../architecture/ingestion-pipeline-design.md)
 
-### Server-to-Backend: Direct Libraries
+### Idempotency
 
-| From | To | Library |
-|------|----|---------|
-| Wiki.js MCP | Wiki.js | httpx (GraphQL) |
-| Wiki.js MCP | Qdrant | qdrant-client |
-| Qdrant MCP | Qdrant | qdrant-client |
-| Ingestion Pipeline | Qdrant | qdrant-client |
-| Ingestion Pipeline | Tesseract | pytesseract (in-process) |
-| Tesseract MCP | Tesseract | pytesseract |
+- SHA-256 content hash prevents re-ingestion of identical files
+- `force=True` flag bypasses idempotency check
+- Document tracking in `ingestion.db` SQLite database
 
-## Testing Pattern
+### Knowledge Base File Operations
 
-Tests import tool functions directly (not via SSE) for determinism and speed. SSE transport is smoke-tested in stack health tests. See [Testing Guide](../reference/testing.md).
+- Agent writes `.md` files directly to `knowledge/` with `Write`
+- Searches via `Grep` (keyword) or `qdrant_search` (semantic)
+- Every directory has an `index.md` for routing
+- Content files excluded from git (only `index.md` tracked)
 
-## Related Sections
+## Archived v3 Patterns
 
-- [Architecture](../architecture/index.md) — System design and server registry
-- [Features](../features/index.md) — Feature catalog by priority
-- [MCP Servers](../mcp-servers/index.md) — Per-server tool catalogs
-- [Tool Catalog](../reference/tool-catalog.md) — All 26 tools with signatures
+The following v3 patterns were removed in v4:
+
+- `graphql-and-db.md` — Wiki.js GraphQL queries and SQLite patterns (Wiki.js MCP removed)
+- `caching-and-hooks.md` — BacklinkIndex caching and fire-and-forget hooks (Wiki.js MCP removed)
+
+These are archived in `plans/v4-migration/archived-docs/`.
+
+## Related Documents
+
+- [MCP Servers](../mcp-servers/index.md) — Per-server documentation
+- [Database](../architecture/database.md) — SQLite and Qdrant data models
